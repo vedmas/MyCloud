@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -15,22 +16,44 @@ public class LessonLauncher {
         //OperationFiles
         //readFromFileChannel();
 
-
-        try {
-            RandomAccessFile file = new RandomAccessFile(".\\Repository\\Test.txt", "rw");
-            final FileChannel channel = file.getChannel();
-            String content = "Hallo, Hallo, Hallo";
-            ByteBuffer byteBuffer = ByteBuffer.allocate(30);
-            byteBuffer.clear();
-            byteBuffer.put(content.getBytes());
-            byteBuffer.flip();
-            while (byteBuffer.hasRemaining()) {
-                channel.write(byteBuffer);
-            }
+        //Запись в файл
+        try(FileChannel channel = (FileChannel) Files.newByteChannel(Paths.get(".\\Repository\\Test1.txt"),
+                StandardOpenOption.WRITE, StandardOpenOption.READ, StandardOpenOption.CREATE)) {
+            MappedByteBuffer buffer = channel.map(FileChannel.MapMode.READ_WRITE, 0, 40);
+            String content = "It's incredible!";
+            buffer.put(content.getBytes());
         }
-        catch (Exception e) {
+        catch (IOException e) {
             e.printStackTrace();
         }
+
+        //Чтение из файла
+        try (FileChannel channel = (FileChannel) Files.newByteChannel(Paths.get(".\\Repository\\Test1.txt"))) {
+            MappedByteBuffer buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
+            for(int i =0; i < channel.size(); i++) {
+                System.out.print((char) buffer.get());
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //Запись в файл
+//        try(FileChannel channel = (FileChannel) Files.newByteChannel(Paths.get(".\\Repository\\Test.txt"),
+//                StandardOpenOption.WRITE, StandardOpenOption.CREATE)) {
+//            ByteBuffer buffer = ByteBuffer.allocate(100);
+//            String content = "Hands off Angela Davis";
+//            buffer.put(content.getBytes());
+//            buffer.rewind();
+//            channel.write(buffer);
+//        }
+//        catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+
+
+//        readToFile();
 
         //Поиск файла
 //        Path path = Paths.get(".\\Repository\\Test.txt");
@@ -138,6 +161,27 @@ public class LessonLauncher {
 //        }
     }
 
+            //запись в файл
+    private static void writeToFile() {
+        try {
+            RandomAccessFile file = new RandomAccessFile(".\\Repository\\Test.txt", "rw");
+            final FileChannel channel = file.getChannel();
+            String content = "Hallo, Hallo, Hallo";
+            ByteBuffer byteBuffer = ByteBuffer.allocate(30);
+            byteBuffer.clear();
+            byteBuffer.put(content.getBytes());
+            byteBuffer.flip();
+            while (byteBuffer.hasRemaining()) {
+                channel.write(byteBuffer);
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    //Чтение текста из файла
     private static void readFromFileChannel() {
         try {
             RandomAccessFile file = new RandomAccessFile(".\\Repository\\Test.txt", "rw");
@@ -158,4 +202,9 @@ public class LessonLauncher {
             e.printStackTrace();
         }
     }
+
+
+
+
+
 }
