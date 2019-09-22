@@ -18,6 +18,7 @@ public class Server {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             ServerBootstrap b = new ServerBootstrap();
+            System.out.println("Start server!");
             b.group(mainGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
@@ -33,7 +34,9 @@ public class Server {
 
             ChannelFuture future = b.bind(8189).sync();
             future.channel().closeFuture().sync();
-        } finally {
+
+        }
+        finally {
             mainGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }

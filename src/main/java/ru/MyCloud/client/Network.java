@@ -18,6 +18,7 @@ public class Network {
             socket = new Socket("localhost", 8189);
             out = new ObjectEncoderOutputStream(socket.getOutputStream());
             in = new ObjectDecoderInputStream(socket.getInputStream(), 50 * 1024 * 1024);
+            System.out.println("Client start!");
         } catch (IOException e) {
             e.printStackTrace();
         }
