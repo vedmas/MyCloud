@@ -74,6 +74,8 @@ public class MainController implements Initializable {
      return false;
     }
 
+    //На сервере
+
     public boolean pressOnSendBtn(ActionEvent actionEvent) {
         System.out.println("Напиши реализацию и будем отправлять");
         return false;
