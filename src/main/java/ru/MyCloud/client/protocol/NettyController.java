@@ -3,6 +3,7 @@ package ru.MyCloud.client.protocol;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ResourceBundle;
 
@@ -12,6 +13,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import ru.MyCloud.client.Network;
+import ru.MyCloud.common.FileRequest;
 
 public class NettyController implements Initializable {
     @FXML
@@ -33,7 +36,51 @@ public class NettyController implements Initializable {
     }
 
     public void pressOnSendData(ActionEvent actionEvent) {
-        NettyNetwork.getInstance().sendData();
+        NettyNetwork.getInstance().sendData(new FileRequest(tfFileName.getText()));
+    }
+
+    public void pressOnDownloadBtn(ActionEvent actionEvent) {
+        if (tfFileName.getLength() > 0) {
+            NettyNetwork.getInstance().sendData(new FileRequest(tfFileName.getText()));
+            tfFileName.clear();
+        }
+    }
+
+    public boolean pressOnDeleteBtn(ActionEvent actionEvent) {
+        if (tfFileName.getLength() > 0) {
+            fileDeletion("client_storage/", tfFileName.getText());
+            filesList.getItems().remove(tfFileName.getText());
+            tfFileName.clear();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean pressOnSendBtn(ActionEvent actionEvent) {
+        System.out.println("Напиши реализацию и будем отправлять");
+        return false;
+    }
+
+    //На сервере
+    public boolean pressOnDeleteBtnServ(ActionEvent actionEvent) {
+        return false;
+    }
+
+    public boolean pressOnSendBtnServ(ActionEvent actionEvent) {
+        System.out.println("Напиши реализацию и будем отправлять");
+        return false;
+    }
+
+
+    //Удаление файла по указанному пути
+    private void fileDeletion(String pathDirectory, String fileName) {
+        String pathFile = pathDirectory + fileName;
+        Path path = Paths.get(pathFile);
+        try {
+            Files.delete(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void refreshLocalFilesList() {

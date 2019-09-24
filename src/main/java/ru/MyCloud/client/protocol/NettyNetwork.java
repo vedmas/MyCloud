@@ -13,6 +13,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import ru.MyCloud.common.FileRequest;
 
 public class NettyNetwork {
     private static NettyNetwork ourInstance = new NettyNetwork();
@@ -39,7 +40,7 @@ public class NettyNetwork {
             clientBootstrap.remoteAddress(new InetSocketAddress("localhost", 8189));
             clientBootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
-                    socketChannel.pipeline().addLast();
+                    socketChannel.pipeline().addLast(new NettyInHandler(), new NettyOutHandler());
                     currentChannel = socketChannel;
                 }
             });
@@ -67,7 +68,7 @@ for (int i = 0; i < fullChunksCount; i++) {
 }
      */
 
-    public void sendData() {
+    public void sendData(FileRequest obg) {
         ByteBufAllocator allocator = new PooledByteBufAllocator();
         ByteBuf buf = allocator.buffer(16);
 
