@@ -40,7 +40,7 @@ public class NettyNetwork {
             clientBootstrap.remoteAddress(new InetSocketAddress("localhost", 8189));
             clientBootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
-                    socketChannel.pipeline().addLast(new NettyInHandler(), new NettyOutHandler());
+                    socketChannel.pipeline().addLast();
                     currentChannel = socketChannel;
                 }
             });

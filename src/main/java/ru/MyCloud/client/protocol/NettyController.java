@@ -1,11 +1,15 @@
 package ru.MyCloud.client.protocol;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ResourceBundle;
+import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
+import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -40,10 +44,7 @@ public class NettyController implements Initializable {
     }
 
     public void pressOnDownloadBtn(ActionEvent actionEvent) {
-        if (tfFileName.getLength() > 0) {
-            NettyNetwork.getInstance().sendData(new FileRequest(tfFileName.getText()));
-            tfFileName.clear();
-        }
+
     }
 
     public boolean pressOnDeleteBtn(ActionEvent actionEvent) {
@@ -57,7 +58,33 @@ public class NettyController implements Initializable {
     }
 
     public boolean pressOnSendBtn(ActionEvent actionEvent) {
-        System.out.println("Напиши реализацию и будем отправлять");
+        if (tfFileName.getLength() > 0) {
+            ObjectEncoderOutputStream oeos = null;
+            ObjectDecoderInputStream odis = null;
+            try (Socket socket = new Socket("localhost", 8189)) {
+                oeos = new ObjectEncoderOutputStream(socket.getOutputStream());
+                FileRequest textMessage = new FileRequest(tfFileName.getText());
+                oeos.writeObject(textMessage);
+                oeos.flush();
+                odis = new ObjectDecoderInputStream(socket.getInputStream());
+                FileRequest msgFromServer = (FileRequest) odis.readObject();
+                System.out.println("Answer from server: " + msgFromServer.getFilename());
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    oeos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    odis.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            tfFileName.clear();
+        }
         return false;
     }
 
