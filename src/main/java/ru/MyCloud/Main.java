@@ -1,5 +1,6 @@
 package ru.MyCloud;
 
+import javafx.application.Platform;
 import ru.MyCloud.client.protocol.NettyController;
 import ru.MyCloud.common.FileMessage;
 import ru.MyCloud.common.OrdersNumbers;
@@ -10,6 +11,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,13 +24,16 @@ public class Main {
 
     public static void main(String[] args) {
 
+        for (String s : refreshLocalFilesList()) {
+            System.out.println(s);
+
+        }
+
 //        OrdersNumbers ordersNumbers = new OrdersNumbers();
 //        System.out.println("ordersNumbers.getFILE_LIST_ORDER() = " + ordersNumbers.getFILE_LIST_ORDER());
 
-        ServerInHandler serv = new ServerInHandler();
-        for (String s : serv.refreshLocalFilesList()) {
-            System.out.println(s);
-        }
+
+
 //        try {
 //            FileMessage obj = new FileMessage(Paths.get(FILENAME));
 //            System.out.println("obj.getFilename() = " + obj.getFilename());
@@ -58,5 +63,16 @@ public class Main {
 //            System.out.print((char) ma);
 //        }
 
+    }
+
+    public static List<String> refreshLocalFilesList() {
+        List<String> filesList = new ArrayList<>();
+            try {
+                filesList.clear();
+                Files.list(Paths.get("server_storage")).map(p -> p.getFileName().toString()).forEach(filesList::add);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        return filesList;
     }
 }

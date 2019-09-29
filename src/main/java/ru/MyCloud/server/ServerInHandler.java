@@ -42,36 +42,26 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
                 if(order.getNumberOrder() == 8008) {
                     System.out.println("Получен запрос на обновление списка файлов на сервере");
                     FileListMassage flm = new FileListMassage(list);
-                    ctx.writeAndFlush(flm);
+//                    ctx.writeAndFlush(flm);  // Не работает отправка ответа на клиент
                     System.out.println("Отправлен список файлов на сервере клиенту");
                 }
             }
-        } finally{
+        }
+        finally{
             ReferenceCountUtil.release(msg);
         }
     }
 
-    public List<String> refreshLocalFilesList() {
-        List<String> filesList = new ArrayList<>();
-        if (Platform.isFxApplicationThread()) {
+        public List<String> refreshLocalFilesList() {
+            List<String> filesList = new ArrayList<>();
             try {
                 filesList.clear();
                 Files.list(Paths.get(SERVER_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(filesList::add);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        } else {
-            Platform.runLater(() -> {
-                try {
-                    filesList.clear();
-                    Files.list(Paths.get(SERVER_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(filesList::add);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
+            return filesList;
         }
-        return filesList;
-    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

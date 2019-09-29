@@ -70,7 +70,7 @@ public class NettyController implements Initializable {
     }
 
     public boolean pressOnSendBtn(ActionEvent actionEvent) {
-        sendObject();
+//        sendObject();
         refreshListFilesToServer();
         tfFileName.clear();
         return false;
