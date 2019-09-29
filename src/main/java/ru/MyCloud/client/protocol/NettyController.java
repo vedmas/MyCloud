@@ -1,6 +1,7 @@
 package ru.MyCloud.client.protocol;
 
-import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URL;
@@ -17,12 +18,27 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
-import ru.MyCloud.client.Network;
+import ru.MyCloud.common.FileMessage;
 import ru.MyCloud.common.FileRequest;
+import ru.MyCloud.common.OrderMessage;
+import ru.MyCloud.common.OrdersNumbers;
 
 public class NettyController implements Initializable {
+
+    private final String CLIENT_DIRECTORY = "client_storage/";
+    private final int CONNECTION_PORT = 8189;
+    OrdersNumbers ordersNumbers;
+
     @FXML
     TextField tfFileName;
+
+    public ListView<String> getFilesList() {
+        return filesList;
+    }
+
+    public void setFilesList(ListView<String> filesList) {
+        this.filesList = filesList;
+    }
 
     @FXML
     ListView<String> filesList;
@@ -39,17 +55,13 @@ public class NettyController implements Initializable {
         refreshLocalFilesList();
     }
 
-    public void pressOnSendData(ActionEvent actionEvent) {
-        NettyNetwork.getInstance().sendData(new FileRequest(tfFileName.getText()));
-    }
-
     public void pressOnDownloadBtn(ActionEvent actionEvent) {
 
     }
 
     public boolean pressOnDeleteBtn(ActionEvent actionEvent) {
         if (tfFileName.getLength() > 0) {
-            fileDeletion("client_storage/", tfFileName.getText());
+            fileDeletion(tfFileName.getText());
             filesList.getItems().remove(tfFileName.getText());
             tfFileName.clear();
             return true;
@@ -58,34 +70,50 @@ public class NettyController implements Initializable {
     }
 
     public boolean pressOnSendBtn(ActionEvent actionEvent) {
+        sendObject();
+        refreshListFilesToServer();
+        tfFileName.clear();
+        return false;
+    }
+
+    private void sendObject() {
         if (tfFileName.getLength() > 0) {
             ObjectEncoderOutputStream oeos = null;
-            ObjectDecoderInputStream odis = null;
-            try (Socket socket = new Socket("localhost", 8189)) {
+            try (Socket socket = new Socket("localhost", CONNECTION_PORT)) {
                 oeos = new ObjectEncoderOutputStream(socket.getOutputStream());
-                FileRequest textMessage = new FileRequest(tfFileName.getText());
-                oeos.writeObject(textMessage);
+                FileMessage sendObject = new FileMessage(Paths.get(CLIENT_DIRECTORY + tfFileName.getText()));
+                oeos.writeObject(sendObject);
                 oeos.flush();
-                odis = new ObjectDecoderInputStream(socket.getInputStream());
-                FileRequest msgFromServer = (FileRequest) odis.readObject();
-                System.out.println("Answer from server: " + msgFromServer.getFilename());
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
                 try {
+                    assert oeos != null;
                     oeos.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                try {
-                    odis.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
-            tfFileName.clear();
         }
-        return false;
+    }
+    //Отправка запроса на сервер для обновления списка файлов в каталоге на сервре
+    private void refreshListFilesToServer() {
+        ObjectEncoderOutputStream oeos = null;
+        try (Socket socket = new Socket("localhost", CONNECTION_PORT)) {
+            oeos = new ObjectEncoderOutputStream(socket.getOutputStream());
+            OrderMessage order = new OrderMessage(8008);
+            oeos.writeObject(order);
+            oeos.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                assert oeos != null;
+                oeos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     //На сервере
@@ -98,11 +126,9 @@ public class NettyController implements Initializable {
         return false;
     }
 
-
     //Удаление файла по указанному пути
-    private void fileDeletion(String pathDirectory, String fileName) {
-        String pathFile = pathDirectory + fileName;
-        Path path = Paths.get(pathFile);
+    private void fileDeletion(String fileName) {
+        Path path = Paths.get(CLIENT_DIRECTORY + fileName);
         try {
             Files.delete(path);
         } catch (IOException e) {
@@ -110,7 +136,7 @@ public class NettyController implements Initializable {
         }
     }
 
-    public void refreshLocalFilesList() {
+    private void refreshLocalFilesList() {
         if (Platform.isFxApplicationThread()) {
             try {
                 filesList.getItems().clear();

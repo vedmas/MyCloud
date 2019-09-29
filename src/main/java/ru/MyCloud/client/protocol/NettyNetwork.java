@@ -6,14 +6,15 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.serialization.ClassResolvers;
+import io.netty.handler.codec.serialization.ObjectDecoder;
+import io.netty.handler.codec.serialization.ObjectEncoder;
 import ru.MyCloud.common.FileRequest;
+import ru.MyCloud.server.ServerInHandler;
 
 public class NettyNetwork {
     private static NettyNetwork ourInstance = new NettyNetwork();
@@ -40,10 +41,15 @@ public class NettyNetwork {
             clientBootstrap.remoteAddress(new InetSocketAddress("localhost", 8189));
             clientBootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
-                    socketChannel.pipeline().addLast();
+                    socketChannel.pipeline().addLast(
+                            new ObjectDecoder(5 * 1024 * 1024, ClassResolvers.cacheDisabled(null)),
+                            new ObjectEncoder(),
+                            new NettyInHandler()
+                    );
                     currentChannel = socketChannel;
                 }
-            });
+            })
+                    .option(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture channelFuture = clientBootstrap.connect().sync();
             channelFuture.channel().closeFuture().sync();
         } catch (Exception e) {
@@ -71,7 +77,6 @@ for (int i = 0; i < fullChunksCount; i++) {
     public void sendData(FileRequest obg) {
         ByteBufAllocator allocator = new PooledByteBufAllocator();
         ByteBuf buf = allocator.buffer(16);
-
         for (int i = 65; i < 75; i++) {
             for (int j = 0; j < 4; j++) {
                 if (buf.isWritable()) {
@@ -87,7 +92,6 @@ for (int i = 0; i < fullChunksCount; i++) {
                 }
             }
         }
-
 //        buf.writeByte(15);
 //
 //        buf.writeLong(8L);
