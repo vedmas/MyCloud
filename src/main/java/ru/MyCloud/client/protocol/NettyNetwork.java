@@ -14,7 +14,6 @@ import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import ru.MyCloud.common.FileRequest;
-import ru.MyCloud.server.ServerInHandler;
 
 public class NettyNetwork {
     private static NettyNetwork ourInstance = new NettyNetwork();
@@ -62,17 +61,6 @@ public class NettyNetwork {
             }
         }
     }
-
-    /*
-    byteBuf = allocator.buffer(256);
-for (int i = 0; i < fullChunksCount; i++) {
-	is.read(buf);
-	System.out.println("Sending filechunk: " + Arrays.toString(buf));
-	byteBuf.writeBytes(buf);
-	ctx.writeAndFlush(byteBuf);
-	// byteBuf.clear();
-}
-     */
 
     public void sendData(FileRequest obg) {
         ByteBufAllocator allocator = new PooledByteBufAllocator();

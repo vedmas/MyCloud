@@ -11,7 +11,7 @@ public class NettyInHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
             if(msg instanceof FileListMassage) {
-                System.out.println("Получен список файлов на сервере от сервера");
+                System.out.println("Получен список файлов от сервера");
                 FileListMassage flm = (FileListMassage) msg;
                 for (String file : flm.getListFile()) {
                     System.out.println("File: " + file);

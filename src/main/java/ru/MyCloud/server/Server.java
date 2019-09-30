@@ -11,12 +11,15 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
+import ru.MyCloud.common.OrderMessage;
+import ru.MyCloud.common.OrdersNumbers;
 
 public class Server {
 
     public void run() throws Exception {
         EventLoopGroup mainGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
+        OrdersNumbers ordersNumbers = new OrdersNumbers();
         try {
             ServerBootstrap b = new ServerBootstrap();
             System.out.println("Start server!");
@@ -33,7 +36,7 @@ public class Server {
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
 
-            ChannelFuture future = b.bind(8189).sync();
+            ChannelFuture future = b.bind(ordersNumbers.getPORT()).sync();
             future.channel().closeFuture().sync();
 
         }
@@ -42,8 +45,6 @@ public class Server {
             workerGroup.shutdownGracefully();
         }
     }
-
-
 
     public static void main(String[] args) throws Exception {
         new Server().run();

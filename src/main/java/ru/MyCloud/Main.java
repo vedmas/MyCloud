@@ -24,10 +24,13 @@ public class Main {
 
     public static void main(String[] args) {
 
-        for (String s : refreshLocalFilesList()) {
-            System.out.println(s);
+        OrdersNumbers ordersNumbers = new OrdersNumbers();
+        ordersNumbers.fileDeletion("server_storage", "1.txt");
 
-        }
+//        for (String s : refreshLocalFilesList()) {
+//            System.out.println(s);
+//
+//        }
 
 //        OrdersNumbers ordersNumbers = new OrdersNumbers();
 //        System.out.println("ordersNumbers.getFILE_LIST_ORDER() = " + ordersNumbers.getFILE_LIST_ORDER());

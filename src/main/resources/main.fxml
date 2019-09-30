@@ -17,10 +17,7 @@
     <ListView fx:id="filesList" VBox.vgrow="ALWAYS" />
     <HBox>
         <TextField fx:id="tfFileNameServer" focusTraversable="false" promptText="Укажите имя файла на сервере, который хотите скачать" HBox.hgrow="ALWAYS" />
-        <Button onAction="#pressOnDownloadBtn" text="Скачать" />
         <Button onAction="#pressOnDeleteBtnServ" text="Удалить" />
-        <Button onAction="#pressOnSendBtnServ" text="Отправить" />
     </HBox>
     <ListView fx:id="filesListServer" VBox.vgrow="ALWAYS" />
-<!--    <Button onAction="#pressOnSendData" text="Test Netty Send" />-->
 </VBox>
