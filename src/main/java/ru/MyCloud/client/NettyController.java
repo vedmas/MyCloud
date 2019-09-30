@@ -177,11 +177,10 @@ public class NettyController implements Initializable {
             odis = new ObjectDecoderInputStream(socket.getInputStream());
             if(odis.readObject() instanceof FileListMassage) {
                 System.out.println(true);
-                Object file = odis.readObject();
+                FileListMassage flm = (FileListMassage) odis.readObject();
+                System.out.println("Принят список файлов на сервере");
             }
             else System.out.println(false);
-//            FileListMassage flm = (FileListMassage) odis.readObject();
-            System.out.println("Принят список файлов на сервере");
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
