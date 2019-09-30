@@ -1,4 +1,4 @@
-package ru.MyCloud.client.protocol;
+package ru.MyCloud.client;
 
 import java.io.IOException;
 import java.net.Socket;

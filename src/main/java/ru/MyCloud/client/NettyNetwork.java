@@ -1,4 +1,4 @@
-package ru.MyCloud.client.protocol;
+package ru.MyCloud.client;
 
 import java.net.InetSocketAddress;
 
@@ -82,17 +82,6 @@ public class NettyNetwork {
                 }
             }
         }
-//        buf.writeByte(15);
-//
-//        buf.writeLong(8L);
-//
-//
-//
-//        for (byte b : "test.txt".getBytes()) {
-//            buf.writeByte(b);
-//        }
-//
-//        currentChannel.writeAndFlush(buf);
     }
 
     public boolean isConnectionOpened() {

@@ -1,4 +1,4 @@
-package ru.MyCloud.client.protocol;
+package ru.MyCloud.client;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;

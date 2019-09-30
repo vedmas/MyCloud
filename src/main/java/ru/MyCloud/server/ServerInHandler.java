@@ -29,22 +29,19 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
                 System.out.println("Получен запрос на передачу файла на сервер");
                 FileMessage obj = (FileMessage) msg;
                 Files.write(Paths.get(  SERVER_DIRECTORY + "/" + obj.getFilename()), obj.getData(), StandardOpenOption.CREATE);
-//                if (Files.exists(Paths.get("server_storage/" + fr.getFilename()))) {
-//                    FileMessage fm = new FileMessage(Paths.get("server_storage/" + fr.getFilename()));
-//                    ctx.writeAndFlush(fm);
-//                }
             }
            else if(msg instanceof OrderMessage) {
                Thread.sleep(5);
                 OrderMessage order = (OrderMessage) msg;
                 if(order.getNumberOrder() == ordersNumbers.getRECEIVED_FILE()) {
                     System.out.println("Получен запрос на передачу файла клиенту");
-
+                    FileMessage sendObject = new FileMessage(Paths.get(SERVER_DIRECTORY  + "/" + order.getFileName()));
+//                    ctx.writeAndFlush(sendObject);
                 }
                 else if(order.getNumberOrder() == ordersNumbers.getFILE_LIST_ORDER()) {
                     System.out.println("Получен запрос на обновление списка файлов на сервере");
                     FileListMassage flm = new FileListMassage(refreshLocalFilesList());
-//                    ctx.writeAndFlush(flm);  // Не работает отправка ответа на клиент
+                    ctx.write(flm);  // Не работает отправка ответа на клиент
                     System.out.println("Отправлен список файлов на сервере клиенту");
                 }
                 else if(order.getNumberOrder() == ordersNumbers.getORDER_REMOVE_FILE()) {
@@ -60,16 +57,20 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
-        public List<String> refreshLocalFilesList() {
+        private List<String> refreshLocalFilesList() {
             List<String> filesList = new ArrayList<>();
             try {
-                filesList.clear();
                 Files.list(Paths.get(SERVER_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(filesList::add);
             } catch (IOException e) {
                 e.printStackTrace();
             }
             return filesList;
         }
+
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        ctx.flush();
+    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

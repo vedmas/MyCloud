@@ -1,22 +1,12 @@
 package ru.MyCloud;
 
-import javafx.application.Platform;
-import ru.MyCloud.client.protocol.NettyController;
-import ru.MyCloud.common.FileMessage;
 import ru.MyCloud.common.OrdersNumbers;
-import ru.MyCloud.server.ServerInHandler;
 
-import javax.swing.text.html.ListView;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class Main {
 
