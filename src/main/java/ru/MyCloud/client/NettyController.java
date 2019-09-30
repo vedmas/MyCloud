@@ -6,6 +6,8 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ResourceBundle;
+
+import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
 import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 
 import javafx.application.Platform;
@@ -14,6 +16,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import ru.MyCloud.common.FileListMassage;
 import ru.MyCloud.common.FileMessage;
 import ru.MyCloud.common.OrderMessage;
 import ru.MyCloud.common.OrdersNumbers;
@@ -119,6 +122,7 @@ public class NettyController implements Initializable {
                 FileMessage sendObject = new FileMessage(Paths.get(CLIENT_DIRECTORY + tfFileName.getText()));
                 oeos.writeObject(sendObject);
                 oeos.flush();
+
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
@@ -164,17 +168,32 @@ public class NettyController implements Initializable {
     //Отправка запроса на сервер для обновления списка файлов в каталоге на сервре
     private void refreshListFilesToServer() {
         ObjectEncoderOutputStream oeos = null;
+        ObjectDecoderInputStream odis = null;
         try (Socket socket = new Socket(ordersNumbers.getHOST(), ordersNumbers.getPORT())) {
             oeos = new ObjectEncoderOutputStream(socket.getOutputStream());
             OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
             oeos.writeObject(order);
             oeos.flush();
+            odis = new ObjectDecoderInputStream(socket.getInputStream());
+            if(odis.readObject() instanceof FileListMassage) {
+                System.out.println(true);
+                Object file = odis.readObject();
+            }
+            else System.out.println(false);
+//            FileListMassage flm = (FileListMassage) odis.readObject();
+            System.out.println("Принят список файлов на сервере");
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             try {
-                assert oeos != null;
+
                 oeos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+
+                odis.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }

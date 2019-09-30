@@ -14,9 +14,11 @@ import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import ru.MyCloud.common.FileRequest;
+import ru.MyCloud.common.OrdersNumbers;
 
 public class NettyNetwork {
     private static NettyNetwork ourInstance = new NettyNetwork();
+    OrdersNumbers ordersNumbers = new OrdersNumbers();
 
     public static NettyNetwork getInstance() {
         return ourInstance;
@@ -37,7 +39,7 @@ public class NettyNetwork {
             Bootstrap clientBootstrap = new Bootstrap();
             clientBootstrap.group(group);
             clientBootstrap.channel(NioSocketChannel.class);
-            clientBootstrap.remoteAddress(new InetSocketAddress("localhost", 8189));
+            clientBootstrap.remoteAddress(new InetSocketAddress(ordersNumbers.getHOST(), ordersNumbers.getPORT() ));
             clientBootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
                     socketChannel.pipeline().addLast(
