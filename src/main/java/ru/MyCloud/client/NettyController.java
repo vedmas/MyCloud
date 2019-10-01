@@ -5,10 +5,9 @@ import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
-
-import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
-import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -25,7 +24,6 @@ public class NettyController implements Initializable {
 
     private final String CLIENT_DIRECTORY = "client_storage/";
     private final String SERVER_DIRECTORY = "server_storage/";
-
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
 
     @FXML
@@ -40,8 +38,18 @@ public class NettyController implements Initializable {
     @FXML
     ListView<String> filesListServer;
 
+
+    public String getCLIENT_DIRECTORY() {
+        return CLIENT_DIRECTORY;
+    }
+
+    public String getSERVER_DIRECTORY() {
+        return SERVER_DIRECTORY;
+    }
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -50,12 +58,17 @@ public class NettyController implements Initializable {
         }).start();
 
         refreshLocalFilesList();
-        refreshServerFilesList();
+        refreshServerFilesList(); // локально
     }
 
     public void pressOnDownloadBtn(ActionEvent actionEvent) {
         if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesListServer)) {
             downloadObject(tfFileName.getText());
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             refreshLocalFilesList();
             tfFileName.clear();
         }
@@ -64,7 +77,6 @@ public class NettyController implements Initializable {
     public boolean pressOnSendBtn(ActionEvent actionEvent) {
         if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesList)) {
             sendObject();
-            refreshListFilesToServer();
             tfFileName.clear();
         }
         return false;
@@ -84,8 +96,12 @@ public class NettyController implements Initializable {
     public boolean pressOnDeleteBtnServ(ActionEvent actionEvent) {
         if(tfFileNameServer.getLength() > 0 && filePresence(tfFileNameServer.getText(), filesListServer)) {
             removeFileFromServer(tfFileNameServer.getText());
-            refreshListFilesToServer();
-            refreshServerFilesList(); // локально
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+//            refreshServerFilesList(); // локально
             tfFileNameServer.clear();
             return true;
         }
@@ -95,65 +111,26 @@ public class NettyController implements Initializable {
 
     //Скачивание файла с сервера
     private void downloadObject(String fileName) {
-        ObjectEncoderOutputStream oeos = null;
-        try (Socket socket = new Socket(ordersNumbers.getHOST(), ordersNumbers.getPORT())) {
-            oeos = new ObjectEncoderOutputStream(socket.getOutputStream());
-            OrderMessage order = new OrderMessage(ordersNumbers.getRECEIVED_FILE(), fileName);
-            oeos.writeObject(order);
-            oeos.flush();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                assert oeos != null;
-                oeos.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        OrderMessage order = new OrderMessage(ordersNumbers.getRECEIVED_FILE(), fileName);
+        NettyNetwork.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
     //Передача файла на сервер
     private void sendObject() {
         if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesList)) {
-            ObjectEncoderOutputStream oeos = null;
-            try (Socket socket = new Socket(ordersNumbers.getHOST(), ordersNumbers.getPORT())) {
-                oeos = new ObjectEncoderOutputStream(socket.getOutputStream());
+            try {
                 FileMessage sendObject = new FileMessage(Paths.get(CLIENT_DIRECTORY + tfFileName.getText()));
-                oeos.writeObject(sendObject);
-                oeos.flush();
-
-            } catch (Exception e) {
+                NettyNetwork.getInstance().getCurrentChannel().writeAndFlush(sendObject);
+            } catch (IOException e) {
                 e.printStackTrace();
-            } finally {
-                try {
-                    assert oeos != null;
-                    oeos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
         }
     }
 
     //Запрос на удаление файла с сервера
     private void removeFileFromServer(String fileName) {
-        ObjectEncoderOutputStream oeos = null;
-        try (Socket socket = new Socket(ordersNumbers.getHOST(), ordersNumbers.getPORT())) {
-            oeos = new ObjectEncoderOutputStream(socket.getOutputStream());
-            OrderMessage order = new OrderMessage(ordersNumbers.getORDER_REMOVE_FILE(), fileName);
-            oeos.writeObject(order);
-            oeos.flush();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                assert oeos != null;
-                oeos.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        OrderMessage order = new OrderMessage(ordersNumbers.getORDER_REMOVE_FILE(), fileName);
+        NettyNetwork.getInstance().getCurrentChannel().writeAndFlush(order);
     }
     //поиск файла в списке
     private boolean filePresence (String fileName, ListView list) {
@@ -165,38 +142,10 @@ public class NettyController implements Initializable {
         return false;
     }
 
-    //Отправка запроса на сервер для обновления списка файлов в каталоге на сервре
-    private void refreshListFilesToServer() {
-        ObjectEncoderOutputStream oeos = null;
-        ObjectDecoderInputStream odis = null;
-        try (Socket socket = new Socket(ordersNumbers.getHOST(), ordersNumbers.getPORT())) {
-            oeos = new ObjectEncoderOutputStream(socket.getOutputStream());
-            OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
-            oeos.writeObject(order);
-            oeos.flush();
-            odis = new ObjectDecoderInputStream(socket.getInputStream());
-            if(odis.readObject() instanceof FileListMassage) {
-                System.out.println(true);
-                FileListMassage flm = (FileListMassage) odis.readObject();
-                System.out.println("Принят список файлов на сервере");
-            }
-            else System.out.println(false);
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-
-                oeos.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            try {
-
-                odis.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    //Отправка запроса на сервер для обновления списка файлов в каталоге на сервере
+    private void sendRefreshListFilesToServer() {
+        OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
+        NettyNetwork.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
     //Обновление списка файлов на клиенте
@@ -216,6 +165,18 @@ public class NettyController implements Initializable {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            });
+        }
+    }
+
+    public void refresh(List<String> list) {
+        if (Platform.isFxApplicationThread()) {
+                filesListServer.getItems().clear();
+                filesListServer.getItems().addAll(list);
+        } else {
+            Platform.runLater(() -> {
+                filesListServer.getItems().clear();
+                filesListServer.getItems().addAll(list);
             });
         }
     }

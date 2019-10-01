@@ -64,7 +64,7 @@ public class NettyNetwork {
         }
     }
 
-    public void sendData(FileRequest obg) {
+    public void sendData() {
         ByteBufAllocator allocator = new PooledByteBufAllocator();
         ByteBuf buf = allocator.buffer(16);
         for (int i = 65; i < 75; i++) {

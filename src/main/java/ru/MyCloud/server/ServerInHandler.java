@@ -7,6 +7,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
+import ru.MyCloud.client.NettyController;
 import ru.MyCloud.common.*;
 
 import io.netty.channel.ChannelHandlerContext;
@@ -18,8 +19,6 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        List<String> list = new ArrayList<>();
-        list.add("It works");
         try {
             if (msg == null) {
                 System.out.println("Msg is empty");
@@ -27,8 +26,10 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
             }
             if (msg instanceof FileMessage) {
                 System.out.println("Получен запрос на передачу файла на сервер");
-                FileMessage obj = (FileMessage) msg;
-                Files.write(Paths.get(  SERVER_DIRECTORY + "/" + obj.getFilename()), obj.getData(), StandardOpenOption.CREATE);
+                FileMessage fm = (FileMessage) msg;
+                Files.write(Paths.get(  SERVER_DIRECTORY + "/" + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
+                OrderMessage om = new OrderMessage(ordersNumbers.getRESPONSE_SEND_FILE(), null);
+                ctx.writeAndFlush(om);
             }
            else if(msg instanceof OrderMessage) {
                Thread.sleep(5);
@@ -36,19 +37,20 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
                 if(order.getNumberOrder() == ordersNumbers.getRECEIVED_FILE()) {
                     System.out.println("Получен запрос на передачу файла клиенту");
                     FileMessage sendObject = new FileMessage(Paths.get(SERVER_DIRECTORY  + "/" + order.getFileName()));
-//                    ctx.writeAndFlush(sendObject);
+                    ctx.writeAndFlush(sendObject);
                 }
                 else if(order.getNumberOrder() == ordersNumbers.getFILE_LIST_ORDER()) {
                     System.out.println("Получен запрос на обновление списка файлов на сервере");
                     FileListMassage flm = new FileListMassage(refreshLocalFilesList());
-                    ctx.write(flm);  // Не работает отправка ответа на клиент
+                    ctx.write(flm);
                     System.out.println("Отправлен список файлов на сервере клиенту");
                 }
                 else if(order.getNumberOrder() == ordersNumbers.getORDER_REMOVE_FILE()) {
                     System.out.println("Получен запрос на удаление файла на сервере");
                     ordersNumbers.fileDeletion(SERVER_DIRECTORY, order.getFileName());
                     System.out.println("Файл " + order.getFileName() + " удален");
-
+                    OrderMessage om = new OrderMessage(ordersNumbers.getRESPONSE_ORDER_REMOVE_FILE(), null);
+                    ctx.writeAndFlush(om);
                 }
             }
         }
