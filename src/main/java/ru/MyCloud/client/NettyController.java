@@ -1,7 +1,6 @@
 package ru.MyCloud.client;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -15,7 +14,6 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
-import ru.MyCloud.common.FileListMassage;
 import ru.MyCloud.common.FileMessage;
 import ru.MyCloud.common.OrderMessage;
 import ru.MyCloud.common.OrdersNumbers;
@@ -25,6 +23,7 @@ public class NettyController implements Initializable {
     private final String CLIENT_DIRECTORY = "client_storage/";
     private final String SERVER_DIRECTORY = "server_storage/";
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
+    private NettyController nettyController;
 
     @FXML
     TextField tfFileName;
@@ -49,6 +48,9 @@ public class NettyController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        List<String> list = new ArrayList<>();
+        list.add("Hallo");
+        list.add(" Miguel");
 
         new Thread(new Runnable() {
             @Override
@@ -101,7 +103,7 @@ public class NettyController implements Initializable {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-//            refreshServerFilesList(); // локально
+            refreshServerFilesList(); // локально
             tfFileNameServer.clear();
             return true;
         }
@@ -149,7 +151,7 @@ public class NettyController implements Initializable {
     }
 
     //Обновление списка файлов на клиенте
-    private void refreshLocalFilesList() {
+    public void refreshLocalFilesList() {
         if (Platform.isFxApplicationThread()) {
             try {
                 filesList.getItems().clear();

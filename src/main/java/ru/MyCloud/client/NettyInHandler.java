@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 public class NettyInHandler extends ChannelInboundHandlerAdapter {
-    private NettyController nettyController = new NettyController();
+    private NettyController nettyController;
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
 
     @Override
@@ -25,7 +25,7 @@ public class NettyInHandler extends ChannelInboundHandlerAdapter {
                 for (String s : flm.getListFile()) {
                     System.out.println(s);
                 }
-                nettyController.refresh(flm.getListFile());
+//                nettyController.refresh(flm.getListFile());
             }
             else if(msg instanceof FileMessage) {
                 System.out.println("Получен запрашиваемый файл от сервера");
@@ -33,6 +33,7 @@ public class NettyInHandler extends ChannelInboundHandlerAdapter {
                 Files.write(Paths.get(   nettyController.getCLIENT_DIRECTORY() + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
                 OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
                 ctx.writeAndFlush(order);
+//                nettyController.refreshLocalFilesList();
             }
             else if(msg instanceof OrderMessage) {
                 OrderMessage om = (OrderMessage) msg;
