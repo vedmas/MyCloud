@@ -3,6 +3,7 @@ package ru.MyCloud.client;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
+import org.apache.log4j.Logger;
 import ru.MyCloud.common.FileListMassage;
 import ru.MyCloud.common.FileMessage;
 import ru.MyCloud.common.OrderMessage;
@@ -12,29 +13,35 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-public class NettyInHandler extends ChannelInboundHandlerAdapter {
+public class InHandler extends ChannelInboundHandlerAdapter {
+    private static final Logger log = Logger.getLogger(InHandler.class);
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
-    private NettyController nettyController;
+    private Controller controller;
+
+    public InHandler(Controller controller) {
+        this.controller = controller;
+    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        //Обработка полученных сообщений от сервера
         try {
+            //Обработка информации о файлах на сервере
             if(msg instanceof FileListMassage) {
-                System.out.println("Получен список файлов от сервера");
+                log.info("Получен список файлов от сервера");
                 FileListMassage flm = (FileListMassage) msg;
-                for (String s : flm.getListFile()) {
-                    System.out.println(s);
-                }
-//                nettyController.refresh(flm.getListFile());
+                controller.refresh(flm.getListFile());
             }
+            //Получаем и сохраняем файл запрошенный у облака
             else if(msg instanceof FileMessage) {
-                System.out.println("Получен запрашиваемый файл от сервера");
+                log.info("Получен запрашиваемый файл от сервера");
                 FileMessage fm = (FileMessage) msg;
-                Files.write(Paths.get(   nettyController.getCLIENT_DIRECTORY() + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
+                Files.write(Paths.get(   controller.getCLIENT_DIRECTORY() + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
                 OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
                 ctx.writeAndFlush(order);
-//                nettyController.refreshLocalFilesList();
+                controller.refreshLocalFilesList();
             }
+            //Запрашиваем информацию о файлах на сервере
             else if(msg instanceof OrderMessage) {
                 OrderMessage om = (OrderMessage) msg;
                 if(om.getNumberOrder() == ordersNumbers.getRESPONSE_SEND_FILE() ||

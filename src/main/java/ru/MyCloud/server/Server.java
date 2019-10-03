@@ -11,10 +11,11 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
-import ru.MyCloud.common.OrderMessage;
+import org.apache.log4j.Logger;
 import ru.MyCloud.common.OrdersNumbers;
 
 public class Server {
+    private static final Logger log = Logger.getLogger(Server.class);
 
     public void run() throws Exception {
         EventLoopGroup mainGroup = new NioEventLoopGroup();
@@ -22,7 +23,7 @@ public class Server {
         OrdersNumbers ordersNumbers = new OrdersNumbers();
         try {
             ServerBootstrap b = new ServerBootstrap();
-            System.out.println("Start server!");
+            log.info("Start server!");
             b.group(mainGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
@@ -48,6 +49,5 @@ public class Server {
 
     public static void main(String[] args) throws Exception {
         new Server().run();
-
     }
 }

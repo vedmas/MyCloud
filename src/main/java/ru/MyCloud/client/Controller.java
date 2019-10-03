@@ -4,14 +4,12 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
@@ -20,12 +18,12 @@ import ru.MyCloud.common.OrderMessage;
 import ru.MyCloud.common.OrdersNumbers;
 import org.apache.log4j.Logger;
 
-public class NettyController implements Initializable {
+public class Controller implements Initializable {
+    private static final Logger log = Logger.getLogger(Controller.class);
 
     private final String CLIENT_DIRECTORY = "client_storage/";
     private final String SERVER_DIRECTORY = "server_storage/";
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
-    private NettyController nettyController;
 
     @FXML
     TextField tfFileName;
@@ -44,38 +42,37 @@ public class NettyController implements Initializable {
         return CLIENT_DIRECTORY;
     }
 
-    public String getSERVER_DIRECTORY() {
-        return SERVER_DIRECTORY;
-    }
-
-    private static final Logger log = Logger.getLogger(NettyController.class);
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        List<String> list = new ArrayList<>();
-        list.add("Hallo");
-        list.add(" Miguel");
-
         new Thread(new Runnable() {
             @Override
             public void run() {
-                NettyNetwork.getInstance().start();
+                Network.getInstance().start(Controller.this);
             }
         }).start();
+        starterRefreshFilesLists();
+    }
 
-        refreshLocalFilesList();
-        refreshServerFilesList(); // локально
+    private void starterRefreshFilesLists() {
+        if(Network.getInstance().isConnectionOpened()) {
+            log.info("Client started!");
+            refreshLocalFilesList();
+            sendRefreshListFilesToServer();
+        }
+        else {
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                log.error(e.getMessage());
+                e.printStackTrace();
+            }
+            starterRefreshFilesLists();
+        }
     }
 
     public void pressOnDownloadBtn(ActionEvent actionEvent) {
         if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesListServer)) {
             downloadObject(tfFileName.getText());
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            refreshLocalFilesList();
             tfFileName.clear();
         }
     }
@@ -98,45 +95,43 @@ public class NettyController implements Initializable {
         return false;
     }
 
-    //Кнопка на сервере
+    //Кнопка удалить файл в облаке
     public boolean pressOnDeleteBtnServ(ActionEvent actionEvent) {
         if(tfFileNameServer.getLength() > 0 && filePresence(tfFileNameServer.getText(), filesListServer)) {
             removeFileFromServer(tfFileNameServer.getText());
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            refreshServerFilesList(); // локально
             tfFileNameServer.clear();
             return true;
         }
-        log.info("There is no such file on the server");
+        log.error("There is no such file on the server");
         return false;
+    }
+    //Кнопка обновить список файлов в облаке
+    public void pressOnRefreshBtnServ(ActionEvent actionEvent) {
+        sendRefreshListFilesToServer();
     }
 
     //Скачивание файла с сервера
     private void downloadObject(String fileName) {
         OrderMessage order = new OrderMessage(ordersNumbers.getRECEIVED_FILE(), fileName);
-        NettyNetwork.getInstance().getCurrentChannel().writeAndFlush(order);
+        Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
-    //Передача файла на сервер
+    //Передача файла в облако
     private void sendObject() {
         if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesList)) {
             try {
                 FileMessage sendObject = new FileMessage(Paths.get(CLIENT_DIRECTORY + tfFileName.getText()));
-                NettyNetwork.getInstance().getCurrentChannel().writeAndFlush(sendObject);
+                Network.getInstance().getCurrentChannel().writeAndFlush(sendObject);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    //Запрос на удаление файла с сервера
+    //Запрос на удаление файла из облака
     private void removeFileFromServer(String fileName) {
         OrderMessage order = new OrderMessage(ordersNumbers.getORDER_REMOVE_FILE(), fileName);
-        NettyNetwork.getInstance().getCurrentChannel().writeAndFlush(order);
+        Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
     //поиск файла в списке
     private boolean filePresence (String fileName, ListView list) {
@@ -148,11 +143,12 @@ public class NettyController implements Initializable {
         return false;
     }
 
-    //Отправка запроса на сервер для обновления списка файлов в каталоге на сервере
+    //Отправка запроса в облако для обновления списка файлов в каталоге в облаке
     private void sendRefreshListFilesToServer() {
-        OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
-        NettyNetwork.getInstance().getCurrentChannel().writeAndFlush(order);
+            OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
+            Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
+
 
     //Обновление списка файлов на клиенте
     public void refreshLocalFilesList() {
@@ -183,27 +179,6 @@ public class NettyController implements Initializable {
             Platform.runLater(() -> {
                 filesListServer.getItems().clear();
                 filesListServer.getItems().addAll(list);
-            });
-        }
-    }
-
-    //Обновление списка файлов на сервере локально, для проверки метода удаления.
-    private void refreshServerFilesList() {
-        if (Platform.isFxApplicationThread()) {
-            try {
-                filesListServer.getItems().clear();
-                Files.list(Paths.get(SERVER_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(o -> filesListServer.getItems().add(o));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            Platform.runLater(() -> {
-                try {
-                    filesListServer.getItems().clear();
-                    Files.list(Paths.get(SERVER_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(o -> filesListServer.getItems().add(o));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             });
         }
     }
