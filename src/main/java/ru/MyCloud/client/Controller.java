@@ -11,12 +11,14 @@ import java.util.ResourceBundle;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import ru.MyCloud.common.FileMessage;
 import ru.MyCloud.common.OrderMessage;
 import ru.MyCloud.common.OrdersNumbers;
+import org.apache.log4j.Logger;
 
 public class NettyController implements Initializable {
 
@@ -45,6 +47,8 @@ public class NettyController implements Initializable {
     public String getSERVER_DIRECTORY() {
         return SERVER_DIRECTORY;
     }
+
+    private static final Logger log = Logger.getLogger(NettyController.class);
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -107,7 +111,7 @@ public class NettyController implements Initializable {
             tfFileNameServer.clear();
             return true;
         }
-        System.out.println("File not found");
+        log.info("There is no such file on the server");
         return false;
     }
 

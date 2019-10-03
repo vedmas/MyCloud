@@ -64,31 +64,13 @@ public class NettyNetwork {
         }
     }
 
-    public void sendData() {
-        ByteBufAllocator allocator = new PooledByteBufAllocator();
-        ByteBuf buf = allocator.buffer(16);
-        for (int i = 65; i < 75; i++) {
-            for (int j = 0; j < 4; j++) {
-                if (buf.isWritable()) {
-                    buf.writeByte(i);
-                } else {
-                    try {
-                        currentChannel.writeAndFlush(buf).await();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    buf.clear();
-                    buf.retain();
-                }
-            }
-        }
-    }
-
     public boolean isConnectionOpened() {
         return currentChannel != null && currentChannel.isActive();
     }
 
     public void closeConnection() {
         currentChannel.close();
+        System.exit(0);
     }
+
 }

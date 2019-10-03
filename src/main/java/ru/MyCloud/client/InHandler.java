@@ -13,8 +13,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 public class NettyInHandler extends ChannelInboundHandlerAdapter {
-    private NettyController nettyController;
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
+    private NettyController nettyController;
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
