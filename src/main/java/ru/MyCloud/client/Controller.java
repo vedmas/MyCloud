@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.KeyStore;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -11,8 +12,8 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
 import ru.MyCloud.common.FileMessage;
 import ru.MyCloud.common.OrderMessage;
 import ru.MyCloud.common.OrdersNumbers;
@@ -22,7 +23,6 @@ public class Controller implements Initializable {
     private static final Logger log = Logger.getLogger(Controller.class);
 
     private final String CLIENT_DIRECTORY = "client_storage/";
-    private final String SERVER_DIRECTORY = "server_storage/";
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
 
     @FXML
@@ -51,8 +51,9 @@ public class Controller implements Initializable {
             }
         }).start();
         starterRefreshFilesLists();
+        setUIListeners();
     }
-
+    //Обновляем списки файлов в каталогах клиента и сервера, если клиент еще не запущен, то ждем запуска.
     private void starterRefreshFilesLists() {
         if(Network.getInstance().isConnectionOpened()) {
             log.info("Client started!");
@@ -70,57 +71,140 @@ public class Controller implements Initializable {
         }
     }
 
-    public void pressOnDownloadBtn(ActionEvent actionEvent) {
-        if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesListServer)) {
-            downloadObject(tfFileName.getText());
-            tfFileName.clear();
-        }
-    }
+    //Параметры контекстных меню
 
-    public boolean pressOnSendBtn(ActionEvent actionEvent) {
-        if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesList)) {
-            sendObject();
-            tfFileName.clear();
-        }
-        return false;
-    }
+    private void setUIListeners() {
+        //Контекстное меню в разделе клиента
+        ContextMenu clientContextMenu = new ContextMenu();
 
-    public boolean pressOnDeleteBtn(ActionEvent actionEvent) {
-        if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesList)) {
-            ordersNumbers.fileDeletion(CLIENT_DIRECTORY ,tfFileName.getText());
+        //Кнопка обновления списка файлов клиента
+        MenuItem refreshClientFiles = new MenuItem("Refresh");
+        refreshClientFiles.setOnAction(event -> {
             refreshLocalFilesList();
-            tfFileName.clear();
-            return true;
+        });
+        refreshClientFiles.setUserData(Boolean.TRUE);
+        clientContextMenu.getItems().add(refreshClientFiles);
+
+        MenuItem uploadToCloud = new MenuItem("Upload to Cloud");
+        uploadToCloud.setOnAction(event -> {
+            sendObject(filesList.getSelectionModel().getSelectedItem());
+        });
+        clientContextMenu.getItems().add(uploadToCloud);
+
+        MenuItem deleteInTheClient = new MenuItem("Delete");
+        deleteInTheClient.setOnAction(event -> {
+            ordersNumbers.fileDeletion(CLIENT_DIRECTORY ,filesList.getSelectionModel().getSelectedItem());
+            refreshLocalFilesList();
+        });
+        clientContextMenu.getItems().add(deleteInTheClient);
+
+        //Контекстное меню в разделе облака
+        ContextMenu serverContextMenu = new ContextMenu();
+
+        MenuItem refreshServerFiles = new MenuItem("Refresh");
+        refreshServerFiles.setOnAction(event -> {
+            sendRefreshListFilesToServer();
+        });
+        refreshServerFiles.setUserData(Boolean.TRUE);
+        serverContextMenu.getItems().add(refreshServerFiles);
+
+        MenuItem downloadToClient = new MenuItem("Download");
+        downloadToClient.setOnAction(event -> {
+            downloadObject(filesListServer.getSelectionModel().getSelectedItem());
+        });
+        serverContextMenu.getItems().add(downloadToClient);
+
+        MenuItem deleteInTheCloud = new MenuItem("Delete");
+        deleteInTheCloud.setOnAction(event -> {
+            removeFileFromServer(filesListServer.getSelectionModel().getSelectedItem());
+        });
+        serverContextMenu.getItems().add(deleteInTheCloud);
+
+        //Обработка клика по файлам в окне клиента
+        filesList.setOnMouseClicked(event -> {
+            // Захватываем имя файла по которому кликнули
+            String fs = filesList.getSelectionModel().getSelectedItem();
+            //Скрытие контекстного меню если оно открыто
+            hideContextMenus(clientContextMenu, serverContextMenu);
+
+            if (event.getButton().equals(MouseButton.SECONDARY) && fs != null) {
+                for (MenuItem mi:clientContextMenu.getItems()) {
+                    if (!mi.isVisible())
+                        mi.setVisible(true);
+                }
+                clientContextMenu.show(filesList, event.getScreenX(), event.getScreenY());
+
+            } else if(event.getButton().equals(MouseButton.SECONDARY)) {
+                for (MenuItem mi:clientContextMenu.getItems()) {
+                    if (mi.isVisible() && (mi.getUserData() == null))
+                        mi.setVisible(false);
+                }
+                clientContextMenu.show(filesList, event.getScreenX(), event.getScreenY());
+            }
+        });
+
+        //Обработка клика по файлам в окне сервера
+        filesListServer.setOnMouseClicked(event -> {
+            String fs = filesListServer.getSelectionModel().getSelectedItem();
+            //Скрытие контекстного меню если оно открыто
+            hideContextMenus(clientContextMenu, serverContextMenu);
+            if (event.getButton().equals(MouseButton.SECONDARY) && fs != null) {
+                for (MenuItem mi:serverContextMenu.getItems()) {
+                    if (!mi.isVisible())
+                        mi.setVisible(true);
+                }
+                serverContextMenu.show(filesListServer, event.getScreenX(), event.getScreenY());
+            }
+            else if(event.getButton().equals(MouseButton.SECONDARY)) {
+
+                for (MenuItem mi:serverContextMenu.getItems()) {
+                    if (mi.isVisible() && (mi.getUserData() == null))
+                    mi.setVisible(false);
+                }
+                serverContextMenu.show(filesListServer, event.getScreenX(), event.getScreenY());
+            }
+        });
+
+    }
+    //Скрытие контекстного меню
+    private void hideContextMenus(ContextMenu ... contextMenus) {
+        for (ContextMenu cm:contextMenus) {
+            if (cm.isShowing())
+                cm.hide();
         }
-        return false;
     }
 
-    //Кнопка удалить файл в облаке
-    public boolean pressOnDeleteBtnServ(ActionEvent actionEvent) {
+        //Кнопка поиска в окне клиента
+    public void pressOnSearchFileClient(ActionEvent actionEvent) {
+        if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesList)) {
+            sortList(tfFileName.getText(), filesList);
+            tfFileName.clear();
+        }
+        tfFileName.clear();
+    }
+
+    //Кнопка поиска в окне облака
+    public boolean pressOnSearchFileServer(ActionEvent actionEvent) {
         if(tfFileNameServer.getLength() > 0 && filePresence(tfFileNameServer.getText(), filesListServer)) {
-            removeFileFromServer(tfFileNameServer.getText());
+            sortList(tfFileNameServer.getText(), filesListServer);
             tfFileNameServer.clear();
             return true;
         }
-        log.error("There is no such file on the server");
+        tfFileNameServer.clear();
         return false;
     }
-    //Кнопка обновить список файлов в облаке
-    public void pressOnRefreshBtnServ(ActionEvent actionEvent) {
-        sendRefreshListFilesToServer();
-    }
 
-    //Скачивание файла с сервера
+    //Скачивание файла с облака
     private void downloadObject(String fileName) {
         OrderMessage order = new OrderMessage(ordersNumbers.getRECEIVED_FILE(), fileName);
         Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
     //Передача файла в облако
-    private void sendObject() {
+    private void sendObject(String fileName) {
         if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesList)) {
             try {
-                FileMessage sendObject = new FileMessage(Paths.get(CLIENT_DIRECTORY + tfFileName.getText()));
+                FileMessage sendObject = new FileMessage(Paths.get(CLIENT_DIRECTORY + fileName));
                 Network.getInstance().getCurrentChannel().writeAndFlush(sendObject);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -143,15 +227,19 @@ public class Controller implements Initializable {
         return false;
     }
 
+    private void sortList(String fileName, ListView<String> list) {
+        list.getItems().remove(fileName);
+        list.getItems().add(0,fileName);
+    }
+
     //Отправка запроса в облако для обновления списка файлов в каталоге в облаке
     private void sendRefreshListFilesToServer() {
             OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
             Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
-
     //Обновление списка файлов на клиенте
-    public void refreshLocalFilesList() {
+    void refreshLocalFilesList() {
         if (Platform.isFxApplicationThread()) {
             try {
                 filesList.getItems().clear();
@@ -171,7 +259,8 @@ public class Controller implements Initializable {
         }
     }
 
-    public void refresh(List<String> list) {
+        //Обновление списка файлов в окне облака
+    void refresh(List<String> list) {
         if (Platform.isFxApplicationThread()) {
                 filesListServer.getItems().clear();
                 filesListServer.getItems().addAll(list);
