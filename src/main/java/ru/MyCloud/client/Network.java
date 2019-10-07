@@ -1,59 +1,78 @@
 package ru.MyCloud.client;
 
-import java.io.IOException;
-import java.net.Socket;
+import java.net.InetSocketAddress;
 
-import ru.MyCloud.common.AbstractMessage;
-
-import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
-import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.serialization.ClassResolvers;
+import io.netty.handler.codec.serialization.ObjectDecoder;
+import io.netty.handler.codec.serialization.ObjectEncoder;
+import io.netty.handler.stream.ChunkedWriteHandler;
+import org.apache.log4j.Logger;
+import ru.MyCloud.common.OrdersNumbers;
 
 public class Network {
-    private static Socket socket;
-    private static ObjectEncoderOutputStream out;
-    private static ObjectDecoderInputStream in;
+    private static final Logger log = Logger.getLogger(Network.class);
+    private static Network ourInstance = new Network();
+    private OrdersNumbers ordersNumbers = new OrdersNumbers();
 
-    public static void start() {
+    static Network getInstance() {
+        return ourInstance;
+    }
+
+    private Network() {
+    }
+
+    private Channel currentChannel;
+
+    Channel getCurrentChannel() {
+        return currentChannel;
+    }
+
+    void start(Controller controller) {
+        EventLoopGroup group = new NioEventLoopGroup();
         try {
-            socket = new Socket("localhost", 8189);
-            out = new ObjectEncoderOutputStream(socket.getOutputStream());
-            in = new ObjectDecoderInputStream(socket.getInputStream(), 50 * 1024 * 1024);
-            System.out.println("Client start!");
-        } catch (IOException e) {
+            Bootstrap clientBootstrap = new Bootstrap();
+            clientBootstrap.group(group);
+            clientBootstrap.channel(NioSocketChannel.class);
+            clientBootstrap.remoteAddress(new InetSocketAddress(ordersNumbers.getHOST(), ordersNumbers.getPORT() ));
+            clientBootstrap.handler(new ChannelInitializer<SocketChannel>() {
+                protected void initChannel(SocketChannel socketChannel) throws Exception {
+                    socketChannel.pipeline().addLast(
+                            new ObjectDecoder(500 * 1024 * 1024, ClassResolvers.cacheDisabled(null)),
+                            new ObjectEncoder(),
+                            new ChunkedWriteHandler(),
+                            new InHandler(controller)
+                    );
+                    currentChannel = socketChannel;
+                }
+            })
+                    .option(ChannelOption.SO_KEEPALIVE, true);
+            ChannelFuture channelFuture = clientBootstrap.connect().sync();
+            channelFuture.channel().closeFuture().sync();
+        } catch (Exception e) {
+            log.error("Error client: " + e.getMessage());
             e.printStackTrace();
+        } finally {
+            try {
+                group.shutdownGracefully().sync();
+            } catch (InterruptedException e) {
+                log.error("Error client: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
     }
 
-    public static void stop() {
-        try {
-            out.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            in.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            socket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    boolean isConnectionOpened() {
+        return currentChannel != null && currentChannel.isActive();
     }
 
-    public static boolean sendMsg(AbstractMessage msg) {
-        try {
-            out.writeObject(msg);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return false;
+    public void closeConnection() {
+        currentChannel.close();
+        System.exit(0);
     }
 
-    public static AbstractMessage readObject() throws ClassNotFoundException, IOException {
-        Object obj = in.readObject();
-        return (AbstractMessage) obj;
-    }
 }
