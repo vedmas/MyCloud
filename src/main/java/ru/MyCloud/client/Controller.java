@@ -3,6 +3,7 @@ package ru.MyCloud.client;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.util.List;
@@ -44,6 +45,7 @@ public class Controller implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        ordersNumbers.createDirectory(CLIENT_DIRECTORY);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -53,6 +55,7 @@ public class Controller implements Initializable {
         starterRefreshFilesLists();
         setUIListeners();
     }
+
     //Обновляем списки файлов в каталогах клиента и сервера, если клиент еще не запущен, то ждем запуска.
     private void starterRefreshFilesLists() {
         if(Network.getInstance().isConnectionOpened()) {

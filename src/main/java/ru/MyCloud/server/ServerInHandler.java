@@ -19,6 +19,11 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
 
     private final String SERVER_DIRECTORY = "server_storage";
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
+
+    String getSERVER_DIRECTORY() {
+        return SERVER_DIRECTORY;
+    }
+
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         //Если вдруг сообщение от клиента пустое, то ничего не делаем

@@ -17,7 +17,8 @@ import ru.MyCloud.common.OrdersNumbers;
 public class Server {
     private static final Logger log = Logger.getLogger(Server.class);
 
-    public void run() throws Exception {
+    private void run() throws Exception {
+        new OrdersNumbers().createDirectory(new ServerInHandler().getSERVER_DIRECTORY());
         EventLoopGroup mainGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         OrdersNumbers ordersNumbers = new OrdersNumbers();
@@ -36,10 +37,8 @@ public class Server {
                         }
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
-
             ChannelFuture future = b.bind(ordersNumbers.getPORT()).sync();
             future.channel().closeFuture().sync();
-
         }
         finally {
             mainGroup.shutdownGracefully();
