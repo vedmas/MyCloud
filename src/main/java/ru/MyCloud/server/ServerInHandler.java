@@ -30,6 +30,7 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
             //Получаем файл от клиента, сохраняем в облаке
             if (msg instanceof FileMessage) {
                 FileMessage fm = (FileMessage) msg;
+                log.info("Получен файл от клиента");
                 Files.write(Paths.get(  SERVER_DIRECTORY + "/" + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
                 OrderMessage om = new OrderMessage(ordersNumbers.getRESPONSE_SEND_FILE(), null);
                 ctx.writeAndFlush(om);

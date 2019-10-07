@@ -202,14 +202,14 @@ public class Controller implements Initializable {
 
     //Передача файла в облако
     private void sendObject(String fileName) {
-        if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesList)) {
             try {
                 FileMessage sendObject = new FileMessage(Paths.get(CLIENT_DIRECTORY + fileName));
                 Network.getInstance().getCurrentChannel().writeAndFlush(sendObject);
+                log.info("Файл отправлен на сервер");
             } catch (IOException e) {
                 e.printStackTrace();
+                log.error(e.getMessage());
             }
-        }
     }
 
     //Запрос на удаление файла из облака
