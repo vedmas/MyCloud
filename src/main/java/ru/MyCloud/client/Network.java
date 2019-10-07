@@ -10,6 +10,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import org.apache.log4j.Logger;
 import ru.MyCloud.common.OrdersNumbers;
 
@@ -41,8 +42,9 @@ public class Network {
             clientBootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
                     socketChannel.pipeline().addLast(
-                            new ObjectDecoder(5 * 1024 * 1024, ClassResolvers.cacheDisabled(null)),
+                            new ObjectDecoder(500 * 1024 * 1024, ClassResolvers.cacheDisabled(null)),
                             new ObjectEncoder(),
+                            new ChunkedWriteHandler(),
                             new InHandler(controller)
                     );
                     currentChannel = socketChannel;
