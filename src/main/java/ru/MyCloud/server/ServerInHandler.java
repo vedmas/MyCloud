@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import ru.MyCloud.client.Network;
 import ru.MyCloud.common.*;
 
 import io.netty.channel.ChannelHandlerContext;
@@ -19,6 +20,8 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
 
     private final String SERVER_DIRECTORY = "server_storage";
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
+    private FileActions fileActions = new FileActions();
+    private List<PackageFile> list = new ArrayList<>();
 
     String getSERVER_DIRECTORY() {
         return SERVER_DIRECTORY;
@@ -32,21 +35,37 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
                 log.error("Msg is empty");
                 return;
             }
-            //Получаем файл от клиента, сохраняем в облаке
-            if (msg instanceof FileMessage) {
-                FileMessage fm = (FileMessage) msg;
-                log.info("Получен файл от клиента");
-                Files.write(Paths.get(  SERVER_DIRECTORY + "/" + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
-                OrderMessage om = new OrderMessage(ordersNumbers.getRESPONSE_SEND_FILE(), null);
-                ctx.writeAndFlush(om);
+            if(msg instanceof PackageFile) {
+                PackageFile pf = (PackageFile) msg;
+                list.add(pf);
+                if(pf.isLastPackage()) {
+                    log.info("Получен файл от клиента");
+                    fileActions.fileRestoredPackets(list);
+                    Files.write(Paths.get(  SERVER_DIRECTORY + "/" + pf.getFileName()),
+                            pf.getDataPackage(), StandardOpenOption.CREATE);
+                    OrderMessage om = new OrderMessage(ordersNumbers.getRESPONSE_SEND_FILE(), null);
+                    ctx.writeAndFlush(om);
+                }
+
             }
+            //Получаем файл от клиента, сохраняем в облаке
+//            if (msg instanceof FileMessage) {
+//                FileMessage fm = (FileMessage) msg;
+//                log.info("Получен файл от клиента");
+//                Files.write(Paths.get(  SERVER_DIRECTORY + "/" + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
+//                OrderMessage om = new OrderMessage(ordersNumbers.getRESPONSE_SEND_FILE(), null);
+//                ctx.writeAndFlush(om);
+//            }
             //Отправляем запрошенный файл клиенту
            else if(msg instanceof OrderMessage) {
-               Thread.sleep(5);
+//               Thread.sleep(5);
                 OrderMessage order = (OrderMessage) msg;
                 if(order.getNumberOrder() == ordersNumbers.getRECEIVED_FILE()) {
-                    FileMessage sendObject = new FileMessage(Paths.get(SERVER_DIRECTORY  + "/" + order.getFileName()));
-                    ctx.writeAndFlush(sendObject);
+                    for (PackageFile packageFile : fileActions.createListPackage(Paths.get(SERVER_DIRECTORY  + "/" + order.getFileName()))) {
+                        ctx.writeAndFlush(packageFile);
+                    }
+//                    FileMessage sendObject = new FileMessage(Paths.get(SERVER_DIRECTORY  + "/" + order.getFileName()));
+//                    ctx.writeAndFlush(sendObject);
                 }
                 //Отправляем клиенту список файлов хранящихся в облаке
                 else if(order.getNumberOrder() == ordersNumbers.getFILE_LIST_ORDER()) {

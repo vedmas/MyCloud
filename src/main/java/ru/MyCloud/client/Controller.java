@@ -15,9 +15,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
-import ru.MyCloud.common.FileMessage;
-import ru.MyCloud.common.OrderMessage;
-import ru.MyCloud.common.OrdersNumbers;
+import ru.MyCloud.common.*;
 import org.apache.log4j.Logger;
 
 public class Controller implements Initializable {
@@ -25,6 +23,7 @@ public class Controller implements Initializable {
 
     private final String CLIENT_DIRECTORY = "client_storage/";
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
+    private FileActions fileActions = new FileActions();
 
     @FXML
     TextField tfFileName;
@@ -88,12 +87,14 @@ public class Controller implements Initializable {
         refreshClientFiles.setUserData(Boolean.TRUE);
         clientContextMenu.getItems().add(refreshClientFiles);
 
+        //Кнопка отправки файла в облако
         MenuItem uploadToCloud = new MenuItem("Upload to Cloud");
         uploadToCloud.setOnAction(event -> {
-            sendObject(filesList.getSelectionModel().getSelectedItem());
+            sendingPacketsFile(filesList.getSelectionModel().getSelectedItem());
         });
         clientContextMenu.getItems().add(uploadToCloud);
 
+        //Кнопка удаления файла
         MenuItem deleteInTheClient = new MenuItem("Delete");
         deleteInTheClient.setOnAction(event -> {
             ordersNumbers.fileDeletion(CLIENT_DIRECTORY ,filesList.getSelectionModel().getSelectedItem());
@@ -104,6 +105,7 @@ public class Controller implements Initializable {
         //Контекстное меню в разделе облака
         ContextMenu serverContextMenu = new ContextMenu();
 
+        //Кнопка обновления списка файлов
         MenuItem refreshServerFiles = new MenuItem("Refresh");
         refreshServerFiles.setOnAction(event -> {
             sendRefreshListFilesToServer();
@@ -111,12 +113,14 @@ public class Controller implements Initializable {
         refreshServerFiles.setUserData(Boolean.TRUE);
         serverContextMenu.getItems().add(refreshServerFiles);
 
+        //Кнопка скачивания файла в дерикторию клиента
         MenuItem downloadToClient = new MenuItem("Download");
         downloadToClient.setOnAction(event -> {
             downloadObject(filesListServer.getSelectionModel().getSelectedItem());
         });
         serverContextMenu.getItems().add(downloadToClient);
 
+        //Кнопка удаления файла в облаке
         MenuItem deleteInTheCloud = new MenuItem("Delete");
         deleteInTheCloud.setOnAction(event -> {
             removeFileFromServer(filesListServer.getSelectionModel().getSelectedItem());
@@ -213,6 +217,13 @@ public class Controller implements Initializable {
                 e.printStackTrace();
                 log.error(e.getMessage());
             }
+    }
+
+    //Отправка файла пакетами
+    private void sendingPacketsFile(String fileName) {
+        for (PackageFile packageFile : fileActions.createListPackage(Paths.get(CLIENT_DIRECTORY + fileName))) {
+            Network.getInstance().getCurrentChannel().writeAndFlush(packageFile);
+        }
     }
 
     //Запрос на удаление файла из облака

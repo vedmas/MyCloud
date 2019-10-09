@@ -4,19 +4,20 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.log4j.Logger;
-import ru.MyCloud.common.FileListMassage;
-import ru.MyCloud.common.FileMessage;
-import ru.MyCloud.common.OrderMessage;
-import ru.MyCloud.common.OrdersNumbers;
+import ru.MyCloud.common.*;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
 
 public class InHandler extends ChannelInboundHandlerAdapter {
     private static final Logger log = Logger.getLogger(InHandler.class);
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
+    private FileActions fileActions = new FileActions();
     private Controller controller;
+    private List<PackageFile> list = new ArrayList<>();
 
     public InHandler(Controller controller) {
         this.controller = controller;
@@ -33,14 +34,27 @@ public class InHandler extends ChannelInboundHandlerAdapter {
                 controller.refresh(flm.getListFile());
             }
             //Получаем и сохраняем файл запрошенный у облака
-            else if(msg instanceof FileMessage) {
-                log.info("Получен запрашиваемый файл от сервера");
-                FileMessage fm = (FileMessage) msg;
-                Files.write(Paths.get(   controller.getCLIENT_DIRECTORY() + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
-                OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
-                ctx.writeAndFlush(order);
-                controller.refreshLocalFilesList();
+            else if(msg instanceof PackageFile) {
+                PackageFile pf = (PackageFile) msg;
+                list.add(pf);
+                if (pf.isLastPackage()) {
+                    log.info("Получен файл от клиента");
+                    fileActions.fileRestoredPackets(list);
+                    Files.write(Paths.get(controller.getCLIENT_DIRECTORY() + pf.getFileName()),
+                            pf.getDataPackage(), StandardOpenOption.CREATE);
+                    OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
+                    ctx.writeAndFlush(order);
+                    controller.refreshLocalFilesList();
+                }
             }
+//            else if(msg instanceof FileMessage) {
+//                log.info("Получен запрашиваемый файл от сервера");
+//                FileMessage fm = (FileMessage) msg;
+//                Files.write(Paths.get(   controller.getCLIENT_DIRECTORY() + fm.getFilename()), fm.getData(), StandardOpenOption.CREATE);
+//                OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
+//                ctx.writeAndFlush(order);
+//                controller.refreshLocalFilesList();
+//            }
             //Запрашиваем информацию о файлах на сервере
             else if(msg instanceof OrderMessage) {
                 OrderMessage om = (OrderMessage) msg;

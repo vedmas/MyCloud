@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 public class OrdersNumbers {
     private static final org.apache.log4j.Logger log = Logger.getLogger(OrdersNumbers.class);
@@ -16,6 +18,7 @@ public class OrdersNumbers {
     private final int ORDER_REMOVE_FILE = 8009; //Команда на удаление файлов на сервере
     private final int RESPONSE_ORDER_REMOVE_FILE = 8010; // Ответ клиенту на успешное удаление файла на сервере
     private final int RESPONSE_SEND_FILE = 8011; //Ответ на успешный прием файла на сервере
+    private final int PACKAGE_SIZE = 5 * 1024 * 1024; //размер пакета передачи данных
 
     private final int PORT = 8188;
     private final String HOST = "localhost";
@@ -44,6 +47,10 @@ public class OrdersNumbers {
         return ORDER_REMOVE_FILE;
     }
 
+    public int getPACKAGE_SIZE() {
+        return PACKAGE_SIZE;
+    }
+
     public String getHOST() {
         return HOST;
     }
@@ -70,4 +77,5 @@ public class OrdersNumbers {
             }
         }
     }
+
 }
