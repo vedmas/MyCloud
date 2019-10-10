@@ -1,2 +1,6 @@
 /.idea/
 /target/
+/client_storage/
+/server_storage/
+/MyCloud.iml
+/MyCloud.log
