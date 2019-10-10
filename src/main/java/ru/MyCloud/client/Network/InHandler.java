@@ -39,9 +39,8 @@ public class InHandler extends ChannelInboundHandlerAdapter {
                 list.add(pf);
                 if (pf.isLastPackage()) {
                     log.info("Получен файл от клиента");
-                    fileActions.fileRestoredPackets(list);
                     Files.write(Paths.get(controller.getCLIENT_DIRECTORY() + pf.getFileName()),
-                            pf.getDataPackage(), StandardOpenOption.CREATE);
+                            fileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
                     OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
                     ctx.writeAndFlush(order);
                     controller.refreshLocalFilesList();
@@ -62,6 +61,9 @@ public class InHandler extends ChannelInboundHandlerAdapter {
                         om.getNumberOrder() == ordersNumbers.getRESPONSE_ORDER_REMOVE_FILE()) {
                     OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
                     ctx.writeAndFlush(order);
+                }
+                else if(om.getNumberOrder() == ordersNumbers.getAUTHORIZATION_PASSED()) {
+                    controller.setAuthorized(true);
                 }
             }
     }

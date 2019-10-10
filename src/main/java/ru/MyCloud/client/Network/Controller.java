@@ -15,6 +15,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
+import javafx.scene.layout.HBox;
 import ru.MyCloud.common.*;
 import org.apache.log4j.Logger;
 
@@ -24,27 +25,60 @@ public class Controller implements Initializable {
     private final String CLIENT_DIRECTORY = "client_storage/";
     private OrdersNumbers ordersNumbers = new OrdersNumbers();
     private FileActions fileActions = new FileActions();
+    private boolean isAuthorized;
 
     @FXML
-    TextField tfFileName;
+    TextField tfFileName, tfFileNameServer, authLoginTF;
 
     @FXML
-    ListView<String> filesList;
+    PasswordField authPasswordPF;
 
     @FXML
-    TextField tfFileNameServer;
+    ListView<String> filesList, filesListServer;
 
     @FXML
-    ListView<String> filesListServer;
+    HBox upperPanel, bottomPanel, bottomPane2;
+
+    @FXML
+
+
 
 
     public String getCLIENT_DIRECTORY() {
         return CLIENT_DIRECTORY;
     }
 
+    public void setAuthorized(Boolean isAuthorized) {
+        this.isAuthorized = isAuthorized;
+        if(!isAuthorized) {
+            upperPanel.setVisible(true);
+            upperPanel.setManaged(true);
+            bottomPanel.setVisible(false);
+            bottomPanel.setManaged(false);
+            bottomPane2.setVisible(false);
+            bottomPane2.setManaged(false);
+            filesList.setVisible(false);
+            filesList.setManaged(false);
+            filesListServer.setVisible(false);
+            filesListServer.setManaged(false);
+        }
+        else {
+            upperPanel.setVisible(false);
+            upperPanel.setManaged(false);
+            bottomPanel.setVisible(true);
+            bottomPanel.setManaged(true);
+            bottomPane2.setVisible(true);
+            bottomPane2.setManaged(true);
+            filesList.setVisible(true);
+            filesList.setManaged(true);
+            filesListServer.setVisible(true);
+            filesListServer.setManaged(true);
+        }
+    }
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        ordersNumbers.createDirectory(CLIENT_DIRECTORY);
+        fileActions.createDirectory(CLIENT_DIRECTORY);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -97,7 +131,7 @@ public class Controller implements Initializable {
         //Кнопка удаления файла
         MenuItem deleteInTheClient = new MenuItem("Delete");
         deleteInTheClient.setOnAction(event -> {
-            ordersNumbers.fileDeletion(CLIENT_DIRECTORY ,filesList.getSelectionModel().getSelectedItem());
+            fileActions.fileDeletion(CLIENT_DIRECTORY ,filesList.getSelectionModel().getSelectedItem());
             refreshLocalFilesList();
         });
         clientContextMenu.getItems().add(deleteInTheClient);
@@ -179,6 +213,13 @@ public class Controller implements Initializable {
             if (cm.isShowing())
                 cm.hide();
         }
+    }
+
+    //Кнопка авторизации
+    public void pressBtnToAuth(ActionEvent actionEvent) {
+        AuthMessage authMessage = new AuthMessage(authLoginTF.getText(), authPasswordPF.getText());
+        Network.getInstance().getCurrentChannel().writeAndFlush(authMessage);
+//        setAuthorized(true);
     }
 
         //Кнопка поиска в окне клиента
