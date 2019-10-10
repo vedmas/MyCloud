@@ -13,16 +13,17 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import org.apache.log4j.Logger;
-import ru.MyCloud.common.OrdersNumbers;
+import ru.MyCloud.common.FileActions;
+import ru.MyCloud.common.Settings;
 
 public class Server {
     private static final Logger log = Logger.getLogger(Server.class);
 
     private void run() throws Exception {
-        new OrdersNumbers().createDirectory(new ServerInHandler().getSERVER_DIRECTORY());
+        new FileActions().createDirectory(new ServerInHandler().getSERVER_DIRECTORY());
         EventLoopGroup mainGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-        OrdersNumbers ordersNumbers = new OrdersNumbers();
+        Settings settings = new Settings();
         try {
             ServerBootstrap b = new ServerBootstrap();
             log.info("Start server!");
@@ -39,7 +40,7 @@ public class Server {
                         }
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
-            ChannelFuture future = b.bind(ordersNumbers.getPORT()).sync();
+            ChannelFuture future = b.bind(settings.getPORT()).sync();
             future.channel().closeFuture().sync();
         }
         finally {

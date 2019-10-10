@@ -1,4 +1,4 @@
-package ru.MyCloud.common;
+package ru.MyCloud.common.Message;
 
 import java.io.IOException;
 import java.nio.file.Files;

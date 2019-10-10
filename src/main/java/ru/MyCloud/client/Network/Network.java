@@ -1,4 +1,4 @@
-package ru.MyCloud.client;
+package ru.MyCloud.client.Network;
 
 import java.net.InetSocketAddress;
 
@@ -12,12 +12,12 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import org.apache.log4j.Logger;
-import ru.MyCloud.common.OrdersNumbers;
+import ru.MyCloud.common.Settings;
 
 public class Network {
     private static final Logger log = Logger.getLogger(Network.class);
     private static Network ourInstance = new Network();
-    private OrdersNumbers ordersNumbers = new OrdersNumbers();
+    private Settings settings = new Settings();
 
     static Network getInstance() {
         return ourInstance;
@@ -38,7 +38,7 @@ public class Network {
             Bootstrap clientBootstrap = new Bootstrap();
             clientBootstrap.group(group);
             clientBootstrap.channel(NioSocketChannel.class);
-            clientBootstrap.remoteAddress(new InetSocketAddress(ordersNumbers.getHOST(), ordersNumbers.getPORT() ));
+            clientBootstrap.remoteAddress(new InetSocketAddress(settings.getHOST(), settings.getPORT() ));
             clientBootstrap.handler(new ChannelInitializer<SocketChannel>() {
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
                     socketChannel.pipeline().addLast(

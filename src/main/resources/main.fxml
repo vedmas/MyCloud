@@ -6,16 +6,36 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox fx:id="rootNode" alignment="CENTER" prefHeight="400.0" prefWidth="300.0" style="-fx-background-color: linear-gradient(#fff 0%, #eee 10%, #ddd 90%, #bbb 100%);"
-      xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.172-ea" fx:controller="ru.MyCloud.client.Controller">
-    <HBox>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.Label?>
+<VBox fx:id="rootNode" alignment="CENTER" prefHeight="500.0" prefWidth="400.0" style="-fx-background-color: linear-gradient(#fff 0%, #eee 10%, #ddd 40%, #bbb 100%);"
+      xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.172-ea" fx:controller="ru.MyCloud.client.Network.Controller">
+
+    <HBox fx:id="upperPanel" alignment="CENTER" spacing="5">
+        <VBox alignment="CENTER_RIGHT" spacing="17">
+            <Label fx:id="authLoginLabel" text="Login:" />
+            <Label fx:id="authPasswordLabel" text="Password:" />
+            <Label fx:id="authPasswordLabe2" text="" />
+            <Label fx:id="authPasswordLabe3" text="" />
+        </VBox>
+        <VBox spacing="10">
+            <TextField fx:id="authLoginTF" />
+            <PasswordField fx:id="authPasswordPF" />
+            <Button fx:id="pressBtnToAuth" text="Sign In" onAction="#pressBtnToAuth" />
+            <Label fx:id="authMsg" text="" />
+        </VBox>
+    </HBox>
+
+
+
+    <HBox fx:id="bottomPanel" managed="false" visible="false">
         <TextField fx:id="tfFileName" focusTraversable="false" promptText="Укажите имя файла" HBox.hgrow="ALWAYS" />
         <Button onAction="#pressOnSearchFileClient" text="Search" />
     </HBox>
-    <ListView fx:id="filesList" VBox.vgrow="ALWAYS" />
-    <HBox>
+    <ListView fx:id="filesList" VBox.vgrow="ALWAYS" managed="false" visible="false" />
+    <HBox fx:id="bottomPane2" managed="false" visible="false">
         <TextField fx:id="tfFileNameServer" focusTraversable="false" promptText="Укажите имя файла" HBox.hgrow="ALWAYS" />
         <Button onAction="#pressOnSearchFileServer" text="Search" />
     </HBox>
-    <ListView fx:id="filesListServer" VBox.vgrow="ALWAYS" />
+    <ListView fx:id="filesListServer" VBox.vgrow="ALWAYS" managed="false" visible="false"/>
 </VBox>

@@ -1,4 +1,4 @@
-package ru.MyCloud.common;
+package ru.MyCloud.common.Message;
 
 public class OrderMessage extends AbstractMessage {
     private int numberOrder;

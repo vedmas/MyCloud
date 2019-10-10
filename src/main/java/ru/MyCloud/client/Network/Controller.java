@@ -1,11 +1,9 @@
-package ru.MyCloud.client;
+package ru.MyCloud.client.Network;
 
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.KeyStore;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -18,12 +16,14 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import ru.MyCloud.common.*;
 import org.apache.log4j.Logger;
+import ru.MyCloud.common.Message.AuthMessage;
+import ru.MyCloud.common.Message.OrderMessage;
 
 public class Controller implements Initializable {
     private static final Logger log = Logger.getLogger(Controller.class);
 
     private final String CLIENT_DIRECTORY = "client_storage/";
-    private OrdersNumbers ordersNumbers = new OrdersNumbers();
+    private Settings settings = new Settings();
     private FileActions fileActions = new FileActions();
     private boolean isAuthorized;
 
@@ -40,7 +40,7 @@ public class Controller implements Initializable {
     HBox upperPanel, bottomPanel, bottomPane2;
 
     @FXML
-
+    Label authMsg;
 
 
 
@@ -48,7 +48,7 @@ public class Controller implements Initializable {
         return CLIENT_DIRECTORY;
     }
 
-    public void setAuthorized(Boolean isAuthorized) {
+    void setAuthorized(Boolean isAuthorized) {
         this.isAuthorized = isAuthorized;
         if(!isAuthorized) {
             upperPanel.setVisible(true);
@@ -108,7 +108,6 @@ public class Controller implements Initializable {
     }
 
     //Параметры контекстных меню
-
     private void setUIListeners() {
         //Контекстное меню в разделе клиента
         ContextMenu clientContextMenu = new ContextMenu();
@@ -217,9 +216,10 @@ public class Controller implements Initializable {
 
     //Кнопка авторизации
     public void pressBtnToAuth(ActionEvent actionEvent) {
-        AuthMessage authMessage = new AuthMessage(authLoginTF.getText(), authPasswordPF.getText());
-        Network.getInstance().getCurrentChannel().writeAndFlush(authMessage);
-//        setAuthorized(true);
+        if(!authLoginTF.getText().isEmpty() && !authPasswordPF.getText().isEmpty()) {
+            AuthMessage authMessage = new AuthMessage(authLoginTF.getText(), authPasswordPF.getText());
+            Network.getInstance().getCurrentChannel().writeAndFlush(authMessage);
+        }
     }
 
         //Кнопка поиска в окне клиента
@@ -244,20 +244,8 @@ public class Controller implements Initializable {
 
     //Скачивание файла с облака
     private void downloadObject(String fileName) {
-        OrderMessage order = new OrderMessage(ordersNumbers.getRECEIVED_FILE(), fileName);
+        OrderMessage order = new OrderMessage(settings.getRECEIVED_FILE(), fileName);
         Network.getInstance().getCurrentChannel().writeAndFlush(order);
-    }
-
-    //Передача файла в облако
-    private void sendObject(String fileName) {
-            try {
-                FileMessage sendObject = new FileMessage(Paths.get(CLIENT_DIRECTORY + fileName));
-                Network.getInstance().getCurrentChannel().writeAndFlush(sendObject);
-                log.info("Файл отправлен на сервер");
-            } catch (IOException e) {
-                e.printStackTrace();
-                log.error(e.getMessage());
-            }
     }
 
     //Отправка файла пакетами
@@ -269,7 +257,7 @@ public class Controller implements Initializable {
 
     //Запрос на удаление файла из облака
     private void removeFileFromServer(String fileName) {
-        OrderMessage order = new OrderMessage(ordersNumbers.getORDER_REMOVE_FILE(), fileName);
+        OrderMessage order = new OrderMessage(settings.getORDER_REMOVE_FILE(), fileName);
         Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
     //поиск файла в списке
@@ -289,7 +277,7 @@ public class Controller implements Initializable {
 
     //Отправка запроса в облако для обновления списка файлов в каталоге в облаке
     private void sendRefreshListFilesToServer() {
-            OrderMessage order = new OrderMessage(ordersNumbers.getFILE_LIST_ORDER(), null);
+            OrderMessage order = new OrderMessage(settings.getFILE_LIST_ORDER(), null);
             Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
@@ -325,5 +313,9 @@ public class Controller implements Initializable {
                 filesListServer.getItems().addAll(list);
             });
         }
+    }
+
+    public void setMessage(String text) {
+        Platform.runLater(() -> authMsg.setText(text));
     }
 }
