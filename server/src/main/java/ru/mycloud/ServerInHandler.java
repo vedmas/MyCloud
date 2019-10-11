@@ -8,6 +8,7 @@ import ru.mycloud.message.AuthMessage;
 import ru.mycloud.message.CommandMessage;
 import ru.mycloud.message.FileListMassage;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -15,10 +16,11 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
+import static ru.mycloud.Settings.SERVER_DIRECTORY;
+
 public class ServerInHandler extends ChannelInboundHandlerAdapter {
     private static final Logger log = Logger.getLogger(ServerInHandler.class);
 
-    public static final String SERVER_DIRECTORY = "server_storage";
     private Settings settings = new Settings();
     private AuthService authService = new AuthService();
     private FileActions fileActions = new FileActions();
@@ -26,7 +28,6 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-
         try {
             //Если вдруг сообщение от клиента пустое, то ничего не делаем
             if (msg == null) {
@@ -38,8 +39,8 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
                 System.out.println("pf.isLastPackage() = " + pf.isLastPackage());
                 if(pf.isLastPackage()) {
                     log.info("Получен файл от клиента");
-                    Files.write(Paths.get(  SERVER_DIRECTORY + "/" + pf.getFileName()),
-                            fileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
+                    Files.write(Paths.get(  SERVER_DIRECTORY + File.separator + pf.getFileName()),
+                            FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
                     list.clear();
                     CommandMessage om = new CommandMessage(Settings.RESPONSE_SEND_FILE, null);
                     ctx.writeAndFlush(om);
@@ -50,7 +51,7 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
            else if(msg instanceof CommandMessage) {
                 CommandMessage order = (CommandMessage) msg;
                 if(order.getNumberOrder() == Settings.RECEIVED_FILE) {
-                    for (PackageFile packageFile : fileActions.createListPackage(Paths.get(SERVER_DIRECTORY  + "/" + order.getFileName()))) {
+                    for (PackageFile packageFile : FileActions.createListPackage(Paths.get(SERVER_DIRECTORY  + File.separator + order.getFileName()))) {
                         ctx.writeAndFlush(packageFile);
                     }
                 }
@@ -62,7 +63,7 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
                 }
                 //Delete a file in the cloud on customer request
                 else if(order.getNumberOrder() == Settings.ORDER_REMOVE_FILE) {
-                    fileActions.fileDeletion(SERVER_DIRECTORY, order.getFileName());
+                    FileActions.fileDeletion(SERVER_DIRECTORY, order.getFileName());
                     log.info("Файл " + order.getFileName() + " удален");
                     CommandMessage om = new CommandMessage(Settings.RESPONSE_ORDER_REMOVE_FILE, null);
                     ctx.writeAndFlush(om);

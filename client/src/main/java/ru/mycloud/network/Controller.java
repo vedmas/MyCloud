@@ -24,9 +24,6 @@ import java.util.ResourceBundle;
 public class Controller implements Initializable {
     private static final Logger log = Logger.getLogger(Controller.class);
 
-    static final String CLIENT_DIRECTORY = "client_storage/";
-    private FileActions fileActions = new FileActions();
-
     @FXML
     TextField tfFileName, tfFileNameServer, authLoginTF;
 
@@ -42,36 +39,22 @@ public class Controller implements Initializable {
     @FXML
     Label authMsg;
 
-    void setAuthorized(boolean isAuthorized) {
-        if(!isAuthorized) {
-            upperPanel.setVisible(true);
-            upperPanel.setManaged(true);
-            bottomPanel.setVisible(false);
-            bottomPanel.setManaged(false);
-            bottomPane2.setVisible(false);
-            bottomPane2.setManaged(false);
-            filesList.setVisible(false);
-            filesList.setManaged(false);
-            filesListServer.setVisible(false);
-            filesListServer.setManaged(false);
-        }
-        else {
-            upperPanel.setVisible(false);
-            upperPanel.setManaged(false);
-            bottomPanel.setVisible(true);
-            bottomPanel.setManaged(true);
-            bottomPane2.setVisible(true);
-            bottomPane2.setManaged(true);
-            filesList.setVisible(true);
-            filesList.setManaged(true);
-            filesListServer.setVisible(true);
-            filesListServer.setManaged(true);
-        }
+    void setAuthorized() {
+        upperPanel.setVisible(false);
+        upperPanel.setManaged(false);
+        bottomPanel.setVisible(true);
+        bottomPanel.setManaged(true);
+        bottomPane2.setVisible(true);
+        bottomPane2.setManaged(true);
+        filesList.setVisible(true);
+        filesList.setManaged(true);
+        filesListServer.setVisible(true);
+        filesListServer.setManaged(true);
     }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        fileActions.createDirectory(CLIENT_DIRECTORY);
+        FileActions.createDirectory(Settings.CLIENT_DIRECTORY);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -120,7 +103,7 @@ public class Controller implements Initializable {
 
         MenuItem deleteInTheClient = new MenuItem("Delete");
         deleteInTheClient.setOnAction(event -> {
-            fileActions.fileDeletion(CLIENT_DIRECTORY ,filesList.getSelectionModel().getSelectedItem());
+            FileActions.fileDeletion(Settings.CLIENT_DIRECTORY ,filesList.getSelectionModel().getSelectedItem());
             refreshLocalFilesList();
         });
         clientContextMenu.getItems().add(deleteInTheClient);
@@ -230,7 +213,7 @@ public class Controller implements Initializable {
     }
 
     private void sendingPacketsFile(String fileName) {
-        for (PackageFile packageFile : fileActions.createListPackage(Paths.get(CLIENT_DIRECTORY + fileName))) {
+        for (PackageFile packageFile : FileActions.createListPackage(Paths.get(Settings.CLIENT_DIRECTORY + fileName))) {
             Network.getInstance().getCurrentChannel().writeAndFlush(packageFile);
         }
     }
@@ -263,7 +246,7 @@ public class Controller implements Initializable {
         if (Platform.isFxApplicationThread()) {
             try {
                 filesList.getItems().clear();
-                Files.list(Paths.get(CLIENT_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(o -> filesList.getItems().add(o));
+                Files.list(Paths.get(Settings.CLIENT_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(o -> filesList.getItems().add(o));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -271,7 +254,7 @@ public class Controller implements Initializable {
             Platform.runLater(() -> {
                 try {
                     filesList.getItems().clear();
-                    Files.list(Paths.get(CLIENT_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(o -> filesList.getItems().add(o));
+                    Files.list(Paths.get(Settings.CLIENT_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(o -> filesList.getItems().add(o));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

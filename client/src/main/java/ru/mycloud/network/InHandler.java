@@ -18,8 +18,6 @@ import java.util.List;
 
 public class InHandler extends ChannelInboundHandlerAdapter {
     private static final Logger log = Logger.getLogger(InHandler.class);
-    private Settings settings = new Settings();
-    private FileActions fileActions = new FileActions();
     private Controller controller;
     private List<PackageFile> list = new ArrayList<>();
 
@@ -42,8 +40,8 @@ public class InHandler extends ChannelInboundHandlerAdapter {
                 list.add(pf);
                 if (pf.isLastPackage()) {
                     log.info("Получен файл от клиента");
-                    Files.write(Paths.get(Controller.CLIENT_DIRECTORY + pf.getFileName()),
-                            fileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
+                    Files.write(Paths.get(Settings.CLIENT_DIRECTORY + pf.getFileName()),
+                            FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
                     CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
                     ctx.writeAndFlush(order);
                     controller.refreshLocalFilesList();
@@ -59,7 +57,7 @@ public class InHandler extends ChannelInboundHandlerAdapter {
                     ctx.writeAndFlush(order);
                 }
                 else if(om.getNumberOrder() == Settings.AUTHORIZATION_PASSED) {
-                    controller.setAuthorized(true);
+                    controller.setAuthorized();
                 }
                 else if(om.getNumberOrder() == Settings.AUTHORIZATION_FAILED) {
                     controller.setMessage();

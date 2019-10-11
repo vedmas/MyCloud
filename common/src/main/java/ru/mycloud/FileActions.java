@@ -14,7 +14,7 @@ import java.util.List;
 public class FileActions {
     private static final Logger log = Logger.getLogger(FileActions.class);
 
-    public List<PackageFile> createListPackage(Path path) {
+    public static List<PackageFile> createListPackage(Path path) {
         byte[] data = convertToByteArray(path);
         List<PackageFile> list = new ArrayList<>();
         byte[] dataTemp;
@@ -40,7 +40,7 @@ public class FileActions {
         return list;
     }
 
-    private byte[] convertToByteArray (Path path) {
+    private static byte[] convertToByteArray (Path path) {
         byte[] data = new byte[0];
         try {
             data = Files.readAllBytes(path);
@@ -50,7 +50,7 @@ public class FileActions {
         return data;
     }
 
-    public byte[] fileRestoredPackets(List<PackageFile> list) {
+    public static byte[] fileRestoredPackets(List<PackageFile> list) {
         byte[] newData = new byte[0];
         int  currentLength;
         for (PackageFile packageFile : list) {
@@ -61,7 +61,7 @@ public class FileActions {
         return newData;
     }
 
-    public void fileDeletion(String catalog, String fileName) {
+    public static void fileDeletion(String catalog, String fileName) {
         Path path = Paths.get(catalog  + File.separator + fileName);
         try {
             Files.delete(path);
@@ -71,7 +71,7 @@ public class FileActions {
         }
     }
 
-    public void createDirectory(String path) {
+    public static void createDirectory(String path) {
         if(Files.notExists(Paths.get("." + File.separator + path))) {
             try {
                 Files.createDirectory(Paths.get("." + File.separator + path));
