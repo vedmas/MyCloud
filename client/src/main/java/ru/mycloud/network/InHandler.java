@@ -1,14 +1,14 @@
-package ru.MyCloud.network;
+package ru.mycloud.network;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.log4j.Logger;
-import ru.MyCloud.FileActions;
-import ru.MyCloud.PackageFile;
-import ru.MyCloud.Settings;
-import ru.MyCloud.message.AbstractMessage;
-import ru.MyCloud.message.OrderMessage;
+import ru.mycloud.FileActions;
+import ru.mycloud.PackageFile;
+import ru.mycloud.Settings;
+import ru.mycloud.message.CommandMessage;
+import ru.mycloud.message.FileListMassage;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -23,47 +23,46 @@ public class InHandler extends ChannelInboundHandlerAdapter {
     private Controller controller;
     private List<PackageFile> list = new ArrayList<>();
 
-    public InHandler(Controller controller) {
+    InHandler(Controller controller) {
         this.controller = controller;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        //Обработка полученных сообщений от сервера
         try {
-            //Обработка информации о файлах на сервере
-            if(msg instanceof AbstractMessage.FileListMassage) {
+            //Processing the list of files on the server
+            if(msg instanceof FileListMassage) {
                 log.info("Получен список файлов от сервера");
-                AbstractMessage.FileListMassage flm = (AbstractMessage.FileListMassage) msg;
-                controller.refresh(flm.getListFile());
+                FileListMassage flm = (FileListMassage) msg;
+                controller.refreshCloudFileList(flm.getListFile());
             }
-            //Получаем и сохраняем файл запрошенный у облака
+            //Processing a file received from the cloud
             else if(msg instanceof PackageFile) {
                 PackageFile pf = (PackageFile) msg;
                 list.add(pf);
                 if (pf.isLastPackage()) {
                     log.info("Получен файл от клиента");
-                    Files.write(Paths.get(controller.getCLIENT_DIRECTORY() + pf.getFileName()),
+                    Files.write(Paths.get(Controller.CLIENT_DIRECTORY + pf.getFileName()),
                             fileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
-                    OrderMessage order = new OrderMessage(settings.getFILE_LIST_ORDER(), null);
+                    CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
                     ctx.writeAndFlush(order);
                     controller.refreshLocalFilesList();
                 }
             }
 
-            //Запрашиваем информацию о файлах на сервере
-            else if(msg instanceof OrderMessage) {
-                OrderMessage om = (OrderMessage) msg;
-                if(om.getNumberOrder() == settings.getRESPONSE_SEND_FILE() ||
-                        om.getNumberOrder() == settings.getRESPONSE_ORDER_REMOVE_FILE()) {
-                    OrderMessage order = new OrderMessage(settings.getFILE_LIST_ORDER(), null);
+            //Request a list of files in the cloud
+            else if(msg instanceof CommandMessage) {
+                CommandMessage om = (CommandMessage) msg;
+                if(om.getNumberOrder() == Settings.RESPONSE_SEND_FILE ||
+                        om.getNumberOrder() == Settings.RESPONSE_ORDER_REMOVE_FILE) {
+                    CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
                     ctx.writeAndFlush(order);
                 }
-                else if(om.getNumberOrder() == settings.getAUTHORIZATION_PASSED()) {
+                else if(om.getNumberOrder() == Settings.AUTHORIZATION_PASSED) {
                     controller.setAuthorized(true);
                 }
-                else if(om.getNumberOrder() == settings.getAUTHORIZATION_FAILED()) {
-                    controller.setMessage("Login or password incorrect");
+                else if(om.getNumberOrder() == Settings.AUTHORIZATION_FAILED) {
+                    controller.setMessage();
                 }
             }
     }

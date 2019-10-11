@@ -1,4 +1,4 @@
-package ru.MyCloud.network;
+package ru.mycloud.network;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -8,11 +8,11 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import org.apache.log4j.Logger;
-import ru.MyCloud.FileActions;
-import ru.MyCloud.PackageFile;
-import ru.MyCloud.Settings;
-import ru.MyCloud.message.AuthMessage;
-import ru.MyCloud.message.OrderMessage;
+import ru.mycloud.FileActions;
+import ru.mycloud.PackageFile;
+import ru.mycloud.Settings;
+import ru.mycloud.message.AuthMessage;
+import ru.mycloud.message.CommandMessage;
 
 import java.io.IOException;
 import java.net.URL;
@@ -24,10 +24,8 @@ import java.util.ResourceBundle;
 public class Controller implements Initializable {
     private static final Logger log = Logger.getLogger(Controller.class);
 
-    private final String CLIENT_DIRECTORY = "client_storage/";
-    private Settings settings = new Settings();
+    static final String CLIENT_DIRECTORY = "client_storage/";
     private FileActions fileActions = new FileActions();
-    private boolean isAuthorized;
 
     @FXML
     TextField tfFileName, tfFileNameServer, authLoginTF;
@@ -44,14 +42,7 @@ public class Controller implements Initializable {
     @FXML
     Label authMsg;
 
-
-
-    public String getCLIENT_DIRECTORY() {
-        return CLIENT_DIRECTORY;
-    }
-
-    void setAuthorized(Boolean isAuthorized) {
-        this.isAuthorized = isAuthorized;
+    void setAuthorized(boolean isAuthorized) {
         if(!isAuthorized) {
             upperPanel.setVisible(true);
             upperPanel.setManaged(true);
@@ -91,7 +82,7 @@ public class Controller implements Initializable {
         setUIListeners();
     }
 
-    //Обновляем списки файлов в каталогах клиента и сервера, если клиент еще не запущен, то ждем запуска.
+    //Updating the file list.
     private void starterRefreshFilesLists() {
         if(Network.getInstance().isConnectionOpened()) {
             log.info("Client started!");
@@ -109,12 +100,11 @@ public class Controller implements Initializable {
         }
     }
 
-    //Параметры контекстных меню
+    //Context menu options
     private void setUIListeners() {
-        //Контекстное меню в разделе клиента
+        //Client
         ContextMenu clientContextMenu = new ContextMenu();
 
-        //Кнопка обновления списка файлов клиента
         MenuItem refreshClientFiles = new MenuItem("Refresh");
         refreshClientFiles.setOnAction(event -> {
             refreshLocalFilesList();
@@ -122,14 +112,12 @@ public class Controller implements Initializable {
         refreshClientFiles.setUserData(Boolean.TRUE);
         clientContextMenu.getItems().add(refreshClientFiles);
 
-        //Кнопка отправки файла в облако
         MenuItem uploadToCloud = new MenuItem("Upload to Cloud");
         uploadToCloud.setOnAction(event -> {
             sendingPacketsFile(filesList.getSelectionModel().getSelectedItem());
         });
         clientContextMenu.getItems().add(uploadToCloud);
 
-        //Кнопка удаления файла
         MenuItem deleteInTheClient = new MenuItem("Delete");
         deleteInTheClient.setOnAction(event -> {
             fileActions.fileDeletion(CLIENT_DIRECTORY ,filesList.getSelectionModel().getSelectedItem());
@@ -137,10 +125,9 @@ public class Controller implements Initializable {
         });
         clientContextMenu.getItems().add(deleteInTheClient);
 
-        //Контекстное меню в разделе облака
+        //Cloud
         ContextMenu serverContextMenu = new ContextMenu();
 
-        //Кнопка обновления списка файлов
         MenuItem refreshServerFiles = new MenuItem("Refresh");
         refreshServerFiles.setOnAction(event -> {
             sendRefreshListFilesToServer();
@@ -148,25 +135,22 @@ public class Controller implements Initializable {
         refreshServerFiles.setUserData(Boolean.TRUE);
         serverContextMenu.getItems().add(refreshServerFiles);
 
-        //Кнопка скачивания файла в дерикторию клиента
         MenuItem downloadToClient = new MenuItem("Download");
         downloadToClient.setOnAction(event -> {
             downloadObject(filesListServer.getSelectionModel().getSelectedItem());
         });
         serverContextMenu.getItems().add(downloadToClient);
 
-        //Кнопка удаления файла в облаке
         MenuItem deleteInTheCloud = new MenuItem("Delete");
         deleteInTheCloud.setOnAction(event -> {
             removeFileFromServer(filesListServer.getSelectionModel().getSelectedItem());
         });
         serverContextMenu.getItems().add(deleteInTheCloud);
 
-        //Обработка клика по файлам в окне клиента
+        //Click on the file
         filesList.setOnMouseClicked(event -> {
-            // Захватываем имя файла по которому кликнули
             String fs = filesList.getSelectionModel().getSelectedItem();
-            //Скрытие контекстного меню если оно открыто
+            //Hide the context menu
             hideContextMenus(clientContextMenu, serverContextMenu);
 
             if (event.getButton().equals(MouseButton.SECONDARY) && fs != null) {
@@ -185,7 +169,7 @@ public class Controller implements Initializable {
             }
         });
 
-        //Обработка клика по файлам в окне сервера
+        //Handling clicks in the cloud
         filesListServer.setOnMouseClicked(event -> {
             String fs = filesListServer.getSelectionModel().getSelectedItem();
             //Скрытие контекстного меню если оно открыто
@@ -208,7 +192,6 @@ public class Controller implements Initializable {
         });
 
     }
-    //Скрытие контекстного меню
     private void hideContextMenus(ContextMenu ... contextMenus) {
         for (ContextMenu cm:contextMenus) {
             if (cm.isShowing())
@@ -216,7 +199,6 @@ public class Controller implements Initializable {
         }
     }
 
-    //Кнопка авторизации
     public void pressBtnToAuth(ActionEvent actionEvent) {
         if(!authLoginTF.getText().isEmpty() && !authPasswordPF.getText().isEmpty()) {
             AuthMessage authMessage = new AuthMessage(authLoginTF.getText(), authPasswordPF.getText());
@@ -224,7 +206,6 @@ public class Controller implements Initializable {
         }
     }
 
-        //Кнопка поиска в окне клиента
     public void pressOnSearchFileClient(ActionEvent actionEvent) {
         if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesList)) {
             sortList(tfFileName.getText(), filesList);
@@ -233,7 +214,6 @@ public class Controller implements Initializable {
         tfFileName.clear();
     }
 
-    //Кнопка поиска в окне облака
     public boolean pressOnSearchFileServer(ActionEvent actionEvent) {
         if(tfFileNameServer.getLength() > 0 && filePresence(tfFileNameServer.getText(), filesListServer)) {
             sortList(tfFileNameServer.getText(), filesListServer);
@@ -244,25 +224,22 @@ public class Controller implements Initializable {
         return false;
     }
 
-    //Скачивание файла с облака
     private void downloadObject(String fileName) {
-        OrderMessage order = new OrderMessage(settings.getRECEIVED_FILE(), fileName);
+        CommandMessage order = new CommandMessage(Settings.RECEIVED_FILE, fileName);
         Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
-    //Отправка файла пакетами
     private void sendingPacketsFile(String fileName) {
         for (PackageFile packageFile : fileActions.createListPackage(Paths.get(CLIENT_DIRECTORY + fileName))) {
             Network.getInstance().getCurrentChannel().writeAndFlush(packageFile);
         }
     }
 
-    //Запрос на удаление файла из облака
     private void removeFileFromServer(String fileName) {
-        OrderMessage order = new OrderMessage(settings.getORDER_REMOVE_FILE(), fileName);
+        CommandMessage order = new CommandMessage(Settings.ORDER_REMOVE_FILE, fileName);
         Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
-    //поиск файла в списке
+
     private boolean filePresence (String fileName, ListView list) {
         for (Object value : list.getItems()) {
             if(value.equals(fileName)) {
@@ -277,13 +254,11 @@ public class Controller implements Initializable {
         list.getItems().add(0,fileName);
     }
 
-    //Отправка запроса в облако для обновления списка файлов в каталоге в облаке
     private void sendRefreshListFilesToServer() {
-            OrderMessage order = new OrderMessage(settings.getFILE_LIST_ORDER(), null);
+            CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
             Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
-    //Обновление списка файлов на клиенте
     void refreshLocalFilesList() {
         if (Platform.isFxApplicationThread()) {
             try {
@@ -304,8 +279,7 @@ public class Controller implements Initializable {
         }
     }
 
-        //Обновление списка файлов в окне облака
-    void refresh(List<String> list) {
+    void refreshCloudFileList(List<String> list) {
         if (Platform.isFxApplicationThread()) {
                 filesListServer.getItems().clear();
                 filesListServer.getItems().addAll(list);
@@ -317,7 +291,7 @@ public class Controller implements Initializable {
         }
     }
 
-    public void setMessage(String text) {
-        Platform.runLater(() -> authMsg.setText(text));
+    void setMessage() {
+        Platform.runLater(() -> authMsg.setText("Login or password incorrect"));
     }
 }

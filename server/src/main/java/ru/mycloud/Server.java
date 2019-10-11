@@ -1,4 +1,4 @@
-package ru.MyCloud;
+package ru.mycloud;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -18,10 +18,9 @@ public class Server {
     private static final Logger log = Logger.getLogger(Server.class);
 
     private void run() throws Exception {
-        new FileActions().createDirectory(new ServerInHandler().getSERVER_DIRECTORY());
+        new FileActions().createDirectory(ServerInHandler.SERVER_DIRECTORY);
         EventLoopGroup mainGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-        Settings settings = new Settings();
         try {
             ServerBootstrap b = new ServerBootstrap();
             log.info("Start server!");
@@ -30,7 +29,7 @@ public class Server {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             socketChannel.pipeline().addLast(
-                                    new ObjectDecoder(6 * 1024 * 1024, ClassResolvers.cacheDisabled(null)),
+                                    new ObjectDecoder(Settings.OBJECT_SIZE_FOR_DECODER, ClassResolvers.cacheDisabled(null)),
                                     new ObjectEncoder(),
                                     new ChunkedWriteHandler(),
                                     new ServerInHandler()
@@ -38,7 +37,7 @@ public class Server {
                         }
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
-            ChannelFuture future = b.bind(settings.getPORT()).sync();
+            ChannelFuture future = b.bind(Settings.PORT).sync();
             future.channel().closeFuture().sync();
         }
         finally {

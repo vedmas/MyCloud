@@ -1,4 +1,4 @@
-package ru.MyCloud;
+package ru.mycloud;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;

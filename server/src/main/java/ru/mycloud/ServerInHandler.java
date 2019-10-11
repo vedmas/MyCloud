@@ -1,12 +1,12 @@
-package ru.MyCloud;
+package ru.mycloud;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.log4j.Logger;
-import ru.MyCloud.message.AbstractMessage;
-import ru.MyCloud.message.AuthMessage;
-import ru.MyCloud.message.OrderMessage;
+import ru.mycloud.message.AuthMessage;
+import ru.mycloud.message.CommandMessage;
+import ru.mycloud.message.FileListMassage;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,15 +18,11 @@ import java.util.List;
 public class ServerInHandler extends ChannelInboundHandlerAdapter {
     private static final Logger log = Logger.getLogger(ServerInHandler.class);
 
-    private final String SERVER_DIRECTORY = "server_storage";
+    public static final String SERVER_DIRECTORY = "server_storage";
     private Settings settings = new Settings();
-    private AuthController authController = new AuthController();
+    private AuthService authService = new AuthService();
     private FileActions fileActions = new FileActions();
     private List<PackageFile> list = new ArrayList<>();
-
-    String getSERVER_DIRECTORY() {
-        return SERVER_DIRECTORY;
-    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -35,7 +31,6 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
             //Если вдруг сообщение от клиента пустое, то ничего не делаем
             if (msg == null) {
                 log.error("Msg is empty");
-                return;
             }
              else if (msg instanceof PackageFile) {
                 PackageFile pf = (PackageFile) msg;
@@ -46,43 +41,42 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
                     Files.write(Paths.get(  SERVER_DIRECTORY + "/" + pf.getFileName()),
                             fileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
                     list.clear();
-                    OrderMessage om = new OrderMessage(settings.getRESPONSE_SEND_FILE(), null);
+                    CommandMessage om = new CommandMessage(Settings.RESPONSE_SEND_FILE, null);
                     ctx.writeAndFlush(om);
                 }
             }
 
-            //Отправляем запрошенный файл клиенту
-           else if(msg instanceof OrderMessage) {
-                OrderMessage order = (OrderMessage) msg;
-                if(order.getNumberOrder() == settings.getRECEIVED_FILE()) {
+            //Sending a file to a client
+           else if(msg instanceof CommandMessage) {
+                CommandMessage order = (CommandMessage) msg;
+                if(order.getNumberOrder() == Settings.RECEIVED_FILE) {
                     for (PackageFile packageFile : fileActions.createListPackage(Paths.get(SERVER_DIRECTORY  + "/" + order.getFileName()))) {
                         ctx.writeAndFlush(packageFile);
                     }
-//                    FileMessage sendObject = new FileMessage(Paths.get(SERVER_DIRECTORY  + "/" + order.getFileName()));
-//                    ctx.writeAndFlush(sendObject);
                 }
-                //Отправляем клиенту список файлов хранящихся в облаке
-                else if(order.getNumberOrder() == settings.getFILE_LIST_ORDER()) {
-                    AbstractMessage.FileListMassage flm = new AbstractMessage.FileListMassage(refreshLocalFilesList());
+
+                //Sending a list of files on the server to the client
+                else if(order.getNumberOrder() == Settings.FILE_LIST_ORDER) {
+                    FileListMassage flm = new FileListMassage(refreshLocalFilesList());
                     ctx.write(flm);
                 }
-                //Удаляем файл в облаке по запросу клиента
-                else if(order.getNumberOrder() == settings.getORDER_REMOVE_FILE()) {
+                //Delete a file in the cloud on customer request
+                else if(order.getNumberOrder() == Settings.ORDER_REMOVE_FILE) {
                     fileActions.fileDeletion(SERVER_DIRECTORY, order.getFileName());
                     log.info("Файл " + order.getFileName() + " удален");
-                    OrderMessage om = new OrderMessage(settings.getRESPONSE_ORDER_REMOVE_FILE(), null);
+                    CommandMessage om = new CommandMessage(Settings.RESPONSE_ORDER_REMOVE_FILE, null);
                     ctx.writeAndFlush(om);
                 }
             }
            else if(msg instanceof AuthMessage) {
                AuthMessage am = (AuthMessage) msg;
-               if(authController.isAuthorization(am)) {
-                   OrderMessage om = new OrderMessage(settings.getAUTHORIZATION_PASSED(), null);
+               if(authService.isAuthorization(am)) {
+                   CommandMessage om = new CommandMessage(Settings.AUTHORIZATION_PASSED, null);
                    ctx.writeAndFlush(om);
                    log.info("Authorization passed");
                }
                else {
-                   OrderMessage om = new OrderMessage(settings.getAUTHORIZATION_FAILED(), null);
+                   CommandMessage om = new CommandMessage(Settings.AUTHORIZATION_FAILED, null);
                    ctx.writeAndFlush(om);
                    log.info("Authorization failed");
                }
@@ -92,7 +86,7 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
             ReferenceCountUtil.release(msg);
         }
     }
-    //Сохраняем все имена файлов хранящихся в облаке в список
+    //Save all file names in the cloud to the list
         private List<String> refreshLocalFilesList() {
             List<String> filesList = new ArrayList<>();
             try {

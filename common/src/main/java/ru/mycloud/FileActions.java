@@ -1,7 +1,8 @@
-package ru.MyCloud;
+package ru.mycloud;
 
 import org.apache.log4j.Logger;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,21 +12,15 @@ import java.util.Arrays;
 import java.util.List;
 
 public class FileActions {
-
     private static final Logger log = Logger.getLogger(FileActions.class);
 
-    private Settings settings = new Settings();
-
-    //Создание списка с объектами-пакетами файла для оптравки
     public List<PackageFile> createListPackage(Path path) {
         byte[] data = convertToByteArray(path);
         List<PackageFile> list = new ArrayList<>();
         byte[] dataTemp;
         int marker = -1;
-        int packageNumber = 0;
-        boolean lastPackage = false;
-        if(data.length > settings.getPACKAGE_SIZE()) {
-            dataTemp = new byte[settings.getPACKAGE_SIZE()];
+        if(data.length > Settings.PACKAGE_SIZE) {
+            dataTemp = new byte[Settings.PACKAGE_SIZE];
         }
         else {
             dataTemp = new byte[data.length];
@@ -33,20 +28,18 @@ public class FileActions {
         for (int i = 0; i < data.length; i++) {
             marker++;
             if (marker == dataTemp.length) {
-                list.add(new PackageFile(path, packageNumber, false, dataTemp));
-                packageNumber++;
+                list.add(new PackageFile(path, false, dataTemp));
                 marker = 0;
-                if(data.length - i < settings.getPACKAGE_SIZE()) {
+                if(data.length - i < Settings.PACKAGE_SIZE) {
                     dataTemp = new byte[data.length - i];
-                } else dataTemp = new byte[settings.getPACKAGE_SIZE()];
+                } else dataTemp = new byte[Settings.PACKAGE_SIZE];
             }
             dataTemp[marker] = data[i];
         }
-        list.add(new PackageFile(path, packageNumber, true, dataTemp));
+        list.add(new PackageFile(path, true, dataTemp));
         return list;
     }
 
-    //Преобразование файла в byte массив
     private byte[] convertToByteArray (Path path) {
         byte[] data = new byte[0];
         try {
@@ -57,7 +50,6 @@ public class FileActions {
         return data;
     }
 
-    //Сборка файла из полученных пакетов
     public byte[] fileRestoredPackets(List<PackageFile> list) {
         byte[] newData = new byte[0];
         int  currentLength;
@@ -69,9 +61,8 @@ public class FileActions {
         return newData;
     }
 
-    //Удаление файла по указанному пути
     public void fileDeletion(String catalog, String fileName) {
-        Path path = Paths.get(catalog  + "/" + fileName);
+        Path path = Paths.get(catalog  + File.separator + fileName);
         try {
             Files.delete(path);
         } catch (IOException e) {
@@ -80,16 +71,14 @@ public class FileActions {
         }
     }
 
-    //Создание каталога для хранения файлов
     public void createDirectory(String path) {
-        if(Files.notExists(Paths.get("./" + path))) {
+        if(Files.notExists(Paths.get("." + File.separator + path))) {
             try {
-                Files.createDirectory(Paths.get("./" + path));
+                Files.createDirectory(Paths.get("." + File.separator + path));
             } catch (IOException e) {
                 e.printStackTrace();
                 log.error(e.getMessage());
             }
         }
     }
-
 }

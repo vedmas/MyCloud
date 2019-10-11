@@ -1,14 +1,13 @@
-package ru.MyCloud;
+package ru.mycloud;
 
-import ru.MyCloud.message.AbstractMessage;
+import ru.mycloud.message.AbstractMessage;
 
 import java.nio.file.Path;
 
 public class PackageFile extends AbstractMessage {
-    private String fileName; //Имя передаваемого файла
-    private int numberPackage; // номер пакета
-    private boolean lastPackage; //признак последнего пакета передаваемого файла
-    private byte[] dataPackage; // байтовый массив пакета файла
+    private String fileName;
+    private boolean lastPackage;
+    private byte[] dataPackage;
 
     public String getFileName() {
         return fileName;
@@ -22,9 +21,8 @@ public class PackageFile extends AbstractMessage {
         return dataPackage;
     }
 
-    PackageFile(Path path, int numberPackage, boolean lastPackage, byte[] dataPackage) {
+    PackageFile(Path path, boolean lastPackage, byte[] dataPackage) {
         this.fileName = path.getFileName().toString();
-        this.numberPackage = numberPackage;
         this.lastPackage = lastPackage;
         this.dataPackage = dataPackage;
     }
