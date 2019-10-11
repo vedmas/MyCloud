@@ -16,14 +16,10 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ru.mycloud.Settings.SERVER_DIRECTORY;
-
 public class ServerInHandler extends ChannelInboundHandlerAdapter {
     private static final Logger log = Logger.getLogger(ServerInHandler.class);
 
-    private Settings settings = new Settings();
     private AuthService authService = new AuthService();
-    private FileActions fileActions = new FileActions();
     private List<PackageFile> list = new ArrayList<>();
 
     @Override
@@ -32,66 +28,67 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
             //Если вдруг сообщение от клиента пустое, то ничего не делаем
             if (msg == null) {
                 log.error("Msg is empty");
-            }
-             else if (msg instanceof PackageFile) {
-                PackageFile pf = (PackageFile) msg;
-                list.add(pf);
-                System.out.println("pf.isLastPackage() = " + pf.isLastPackage());
-                if(pf.isLastPackage()) {
-                    log.info("Получен файл от клиента");
-                    Files.write(Paths.get(  SERVER_DIRECTORY + File.separator + pf.getFileName()),
-                            FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
-                    list.clear();
-                    CommandMessage om = new CommandMessage(Settings.RESPONSE_SEND_FILE, null);
-                    ctx.writeAndFlush(om);
-                }
-            }
-
-            //Sending a file to a client
-           else if(msg instanceof CommandMessage) {
-                CommandMessage order = (CommandMessage) msg;
-                if(order.getNumberOrder() == Settings.RECEIVED_FILE) {
-                    for (PackageFile packageFile : FileActions.createListPackage(Paths.get(SERVER_DIRECTORY  + File.separator + order.getFileName()))) {
-                        ctx.writeAndFlush(packageFile);
-                    }
-                }
-
-                //Sending a list of files on the server to the client
-                else if(order.getNumberOrder() == Settings.FILE_LIST_ORDER) {
-                    FileListMassage flm = new FileListMassage(refreshLocalFilesList());
-                    ctx.write(flm);
-                }
-                //Delete a file in the cloud on customer request
-                else if(order.getNumberOrder() == Settings.ORDER_REMOVE_FILE) {
-                    FileActions.fileDeletion(SERVER_DIRECTORY, order.getFileName());
-                    log.info("Файл " + order.getFileName() + " удален");
-                    CommandMessage om = new CommandMessage(Settings.RESPONSE_ORDER_REMOVE_FILE, null);
-                    ctx.writeAndFlush(om);
-                }
-            }
-           else if(msg instanceof AuthMessage) {
-               AuthMessage am = (AuthMessage) msg;
-               if(authService.isAuthorization(am)) {
-                   CommandMessage om = new CommandMessage(Settings.AUTHORIZATION_PASSED, null);
-                   ctx.writeAndFlush(om);
-                   log.info("Authorization passed");
-               }
-               else {
-                   CommandMessage om = new CommandMessage(Settings.AUTHORIZATION_FAILED, null);
-                   ctx.writeAndFlush(om);
-                   log.info("Authorization failed");
-               }
+            } else if (msg instanceof PackageFile) {
+                ProcessingOnObjectPackageFile(ctx, (PackageFile) msg);
+            } else if(msg instanceof CommandMessage) {
+                ProcessingOnObjectCommandMessage(ctx, (CommandMessage) msg);
+            } else if(msg instanceof AuthMessage) {
+                ProcessingOnObjectAuthMessage(ctx, (AuthMessage) msg);
             }
         }
         finally{
             ReferenceCountUtil.release(msg);
         }
     }
+
+    private void ProcessingOnObjectAuthMessage(ChannelHandlerContext ctx, AuthMessage msg) {
+        if(authService.isAuthorization(msg)) {
+            CommandMessage om = new CommandMessage(Settings.AUTHORIZATION_PASSED, null);
+            ctx.writeAndFlush(om);
+            log.info("Authorization passed");
+        } else {
+            CommandMessage om = new CommandMessage(Settings.AUTHORIZATION_FAILED, null);
+            ctx.writeAndFlush(om);
+            log.info("Authorization failed");
+        }
+    }
+
+    private void ProcessingOnObjectCommandMessage(ChannelHandlerContext ctx, CommandMessage msg) {
+        if(msg.getNumberOrder() == Settings.RECEIVED_FILE) {
+            for (PackageFile packageFile : FileActions.createListPackage(Paths.get(Settings.SERVER_DIRECTORY  + File.separator + msg.getFileName()))) {
+                ctx.writeAndFlush(packageFile);
+            }
+            //Sending a list of files on the server to the client
+        } else if(msg.getNumberOrder() == Settings.FILE_LIST_ORDER) {
+            FileListMassage flm = new FileListMassage(refreshLocalFilesList());
+            ctx.write(flm);
+            //Delete a file in the cloud on customer request
+        } else if(msg.getNumberOrder() == Settings.ORDER_REMOVE_FILE) {
+            FileActions.fileDeletion(Settings.SERVER_DIRECTORY, msg.getFileName());
+            log.info("Файл " + msg.getFileName() + " удален");
+            CommandMessage om = new CommandMessage(Settings.RESPONSE_ORDER_REMOVE_FILE, null);
+            ctx.writeAndFlush(om);
+        }
+    }
+
+    private void ProcessingOnObjectPackageFile(ChannelHandlerContext ctx, PackageFile msg) throws IOException {
+        list.add(msg);
+        System.out.println("pf.isLastPackage() = " + msg.isLastPackage());
+        if(msg.isLastPackage()) {
+            log.info("Получен файл от клиента");
+            Files.write(Paths.get(  Settings.SERVER_DIRECTORY + File.separator + msg.getFileName()),
+                    FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
+            list.clear();
+            CommandMessage om = new CommandMessage(Settings.RESPONSE_SEND_FILE, null);
+            ctx.writeAndFlush(om);
+        }
+    }
+
     //Save all file names in the cloud to the list
-        private List<String> refreshLocalFilesList() {
-            List<String> filesList = new ArrayList<>();
-            try {
-                Files.list(Paths.get(SERVER_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(filesList::add);
+    private List<String> refreshLocalFilesList() {
+        List<String> filesList = new ArrayList<>();
+        try {
+            Files.list(Paths.get(Settings.SERVER_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(filesList::add);
             } catch (IOException e) {
                 log.info("Method refreshLocalFilesList error: " + e.getMessage());
                 e.printStackTrace();

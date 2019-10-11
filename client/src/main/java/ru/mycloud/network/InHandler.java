@@ -10,6 +10,7 @@ import ru.mycloud.Settings;
 import ru.mycloud.message.CommandMessage;
 import ru.mycloud.message.FileListMassage;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -28,46 +29,49 @@ public class InHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
-            //Processing the list of files on the server
             if(msg instanceof FileListMassage) {
-                log.info("Получен список файлов от сервера");
-                FileListMassage flm = (FileListMassage) msg;
-                controller.refreshCloudFileList(flm.getListFile());
-            }
-            //Processing a file received from the cloud
-            else if(msg instanceof PackageFile) {
-                PackageFile pf = (PackageFile) msg;
-                list.add(pf);
-                if (pf.isLastPackage()) {
-                    log.info("Получен файл от клиента");
-                    Files.write(Paths.get(Settings.CLIENT_DIRECTORY + pf.getFileName()),
-                            FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
-                    CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
-                    ctx.writeAndFlush(order);
-                    controller.refreshLocalFilesList();
-                }
-            }
-
-            //Request a list of files in the cloud
-            else if(msg instanceof CommandMessage) {
-                CommandMessage om = (CommandMessage) msg;
-                if(om.getNumberOrder() == Settings.RESPONSE_SEND_FILE ||
-                        om.getNumberOrder() == Settings.RESPONSE_ORDER_REMOVE_FILE) {
-                    CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
-                    ctx.writeAndFlush(order);
-                }
-                else if(om.getNumberOrder() == Settings.AUTHORIZATION_PASSED) {
-                    controller.setAuthorized();
-                }
-                else if(om.getNumberOrder() == Settings.AUTHORIZATION_FAILED) {
-                    controller.setMessage();
-                }
+                ProcessingOnObjectFileListMessage((FileListMassage) msg);
+            } else if(msg instanceof PackageFile) {
+                ProcessingOnObjectPackageFile(ctx, (PackageFile) msg);
+            } else if(msg instanceof CommandMessage) {
+                ProcessingOnObjectCommandMessage(ctx, (CommandMessage) msg);
             }
     }
         finally {
             ReferenceCountUtil.release(msg);
         }
+    }
+
+    private void ProcessingOnObjectCommandMessage(ChannelHandlerContext ctx, CommandMessage msg) {
+        if(msg.getNumberOrder() == Settings.RESPONSE_SEND_FILE ||
+                msg.getNumberOrder() == Settings.RESPONSE_ORDER_REMOVE_FILE) {
+            CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
+            ctx.writeAndFlush(order);
         }
+        else if(msg.getNumberOrder() == Settings.AUTHORIZATION_PASSED) {
+            controller.setAuthorized();
+        }
+        else if(msg.getNumberOrder() == Settings.AUTHORIZATION_FAILED) {
+            controller.setMessage();
+        }
+    }
+
+    private void ProcessingOnObjectPackageFile(ChannelHandlerContext ctx, PackageFile msg) throws IOException {
+        list.add(msg);
+        if (msg.isLastPackage()) {
+            log.info("The received file from the client");
+            Files.write(Paths.get(Settings.CLIENT_DIRECTORY + msg.getFileName()),
+                    FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
+            CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
+            ctx.writeAndFlush(order);
+            controller.refreshLocalFilesList();
+        }
+    }
+
+    private void ProcessingOnObjectFileListMessage(FileListMassage msg) {
+        log.info("Received a list of files from the server");
+        controller.refreshCloudFileList(msg.getListFile());
+    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {

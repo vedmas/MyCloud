@@ -71,8 +71,7 @@ public class Controller implements Initializable {
             log.info("Client started!");
             refreshLocalFilesList();
             sendRefreshListFilesToServer();
-        }
-        else {
+        } else {
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {
@@ -85,7 +84,84 @@ public class Controller implements Initializable {
 
     //Context menu options
     private void setUIListeners() {
-        //Client
+        ContextMenu clientContextMenu = clientContextMenu();
+        ContextMenu serverContextMenu = cloudContextMenu();
+        clickOnTheFile(clientContextMenu, serverContextMenu);
+        handlingClicksInTheCloud(clientContextMenu, serverContextMenu);
+
+    }
+
+    private void handlingClicksInTheCloud(ContextMenu clientContextMenu, ContextMenu serverContextMenu) {
+        filesListServer.setOnMouseClicked(event -> {
+            String fs = filesListServer.getSelectionModel().getSelectedItem();
+            //Hide the context menu
+            hideContextMenus(clientContextMenu, serverContextMenu);
+            if (event.getButton().equals(MouseButton.SECONDARY) && fs != null) {
+                for (MenuItem mi:serverContextMenu.getItems()) {
+                    if (!mi.isVisible())
+                        mi.setVisible(true);
+                }
+                serverContextMenu.show(filesListServer, event.getScreenX(), event.getScreenY());
+            }
+            else if(event.getButton().equals(MouseButton.SECONDARY)) {
+
+                for (MenuItem mi:serverContextMenu.getItems()) {
+                    if (mi.isVisible() && (mi.getUserData() == null))
+                    mi.setVisible(false);
+                }
+                serverContextMenu.show(filesListServer, event.getScreenX(), event.getScreenY());
+            }
+        });
+    }
+
+    private void clickOnTheFile(ContextMenu clientContextMenu, ContextMenu serverContextMenu) {
+        filesList.setOnMouseClicked(event -> {
+            String fs = filesList.getSelectionModel().getSelectedItem();
+            //Hide the context menu
+            hideContextMenus(clientContextMenu, serverContextMenu);
+
+            if (event.getButton().equals(MouseButton.SECONDARY) && fs != null) {
+                for (MenuItem mi:clientContextMenu.getItems()) {
+                    if (!mi.isVisible())
+                        mi.setVisible(true);
+                }
+                clientContextMenu.show(filesList, event.getScreenX(), event.getScreenY());
+
+            } else if(event.getButton().equals(MouseButton.SECONDARY)) {
+                for (MenuItem mi:clientContextMenu.getItems()) {
+                    if (mi.isVisible() && (mi.getUserData() == null))
+                        mi.setVisible(false);
+                }
+                clientContextMenu.show(filesList, event.getScreenX(), event.getScreenY());
+            }
+        });
+    }
+
+    private ContextMenu cloudContextMenu() {
+        ContextMenu serverContextMenu = new ContextMenu();
+
+        MenuItem refreshServerFiles = new MenuItem("Refresh");
+        refreshServerFiles.setOnAction(event -> {
+            sendRefreshListFilesToServer();
+        });
+        refreshServerFiles.setUserData(Boolean.TRUE);
+        serverContextMenu.getItems().add(refreshServerFiles);
+
+        MenuItem downloadToClient = new MenuItem("Download");
+        downloadToClient.setOnAction(event -> {
+            downloadObject(filesListServer.getSelectionModel().getSelectedItem());
+        });
+        serverContextMenu.getItems().add(downloadToClient);
+
+        MenuItem deleteInTheCloud = new MenuItem("Delete");
+        deleteInTheCloud.setOnAction(event -> {
+            removeFileFromServer(filesListServer.getSelectionModel().getSelectedItem());
+        });
+        serverContextMenu.getItems().add(deleteInTheCloud);
+        return serverContextMenu;
+    }
+
+    private ContextMenu clientContextMenu() {
         ContextMenu clientContextMenu = new ContextMenu();
 
         MenuItem refreshClientFiles = new MenuItem("Refresh");
@@ -107,74 +183,9 @@ public class Controller implements Initializable {
             refreshLocalFilesList();
         });
         clientContextMenu.getItems().add(deleteInTheClient);
-
-        //Cloud
-        ContextMenu serverContextMenu = new ContextMenu();
-
-        MenuItem refreshServerFiles = new MenuItem("Refresh");
-        refreshServerFiles.setOnAction(event -> {
-            sendRefreshListFilesToServer();
-        });
-        refreshServerFiles.setUserData(Boolean.TRUE);
-        serverContextMenu.getItems().add(refreshServerFiles);
-
-        MenuItem downloadToClient = new MenuItem("Download");
-        downloadToClient.setOnAction(event -> {
-            downloadObject(filesListServer.getSelectionModel().getSelectedItem());
-        });
-        serverContextMenu.getItems().add(downloadToClient);
-
-        MenuItem deleteInTheCloud = new MenuItem("Delete");
-        deleteInTheCloud.setOnAction(event -> {
-            removeFileFromServer(filesListServer.getSelectionModel().getSelectedItem());
-        });
-        serverContextMenu.getItems().add(deleteInTheCloud);
-
-        //Click on the file
-        filesList.setOnMouseClicked(event -> {
-            String fs = filesList.getSelectionModel().getSelectedItem();
-            //Hide the context menu
-            hideContextMenus(clientContextMenu, serverContextMenu);
-
-            if (event.getButton().equals(MouseButton.SECONDARY) && fs != null) {
-                for (MenuItem mi:clientContextMenu.getItems()) {
-                    if (!mi.isVisible())
-                        mi.setVisible(true);
-                }
-                clientContextMenu.show(filesList, event.getScreenX(), event.getScreenY());
-
-            } else if(event.getButton().equals(MouseButton.SECONDARY)) {
-                for (MenuItem mi:clientContextMenu.getItems()) {
-                    if (mi.isVisible() && (mi.getUserData() == null))
-                        mi.setVisible(false);
-                }
-                clientContextMenu.show(filesList, event.getScreenX(), event.getScreenY());
-            }
-        });
-
-        //Handling clicks in the cloud
-        filesListServer.setOnMouseClicked(event -> {
-            String fs = filesListServer.getSelectionModel().getSelectedItem();
-            //Скрытие контекстного меню если оно открыто
-            hideContextMenus(clientContextMenu, serverContextMenu);
-            if (event.getButton().equals(MouseButton.SECONDARY) && fs != null) {
-                for (MenuItem mi:serverContextMenu.getItems()) {
-                    if (!mi.isVisible())
-                        mi.setVisible(true);
-                }
-                serverContextMenu.show(filesListServer, event.getScreenX(), event.getScreenY());
-            }
-            else if(event.getButton().equals(MouseButton.SECONDARY)) {
-
-                for (MenuItem mi:serverContextMenu.getItems()) {
-                    if (mi.isVisible() && (mi.getUserData() == null))
-                    mi.setVisible(false);
-                }
-                serverContextMenu.show(filesListServer, event.getScreenX(), event.getScreenY());
-            }
-        });
-
+        return clientContextMenu;
     }
+
     private void hideContextMenus(ContextMenu ... contextMenus) {
         for (ContextMenu cm:contextMenus) {
             if (cm.isShowing())
