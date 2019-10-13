@@ -11,7 +11,7 @@ public class StartClient extends Application {
     private static final Logger log = Logger.getLogger(StartClient.class);
 
     @Override
-    public void start(Stage primaryStage) throws Exception{
+    public void start(Stage primaryStage) throws Exception {
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/main.fxml"));
         Parent root = fxmlLoader.load();
         primaryStage.setTitle("My Cloud v1.0");

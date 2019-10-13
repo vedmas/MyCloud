@@ -19,10 +19,9 @@ public class FileActions {
         List<PackageFile> list = new ArrayList<>();
         byte[] dataTemp;
         int marker = -1;
-        if(data.length > Settings.PACKAGE_SIZE) {
+        if (data.length > Settings.PACKAGE_SIZE) {
             dataTemp = new byte[Settings.PACKAGE_SIZE];
-        }
-        else {
+        } else {
             dataTemp = new byte[data.length];
         }
         for (int i = 0; i < data.length; i++) {
@@ -30,7 +29,7 @@ public class FileActions {
             if (marker == dataTemp.length) {
                 list.add(new PackageFile(path, false, dataTemp));
                 marker = 0;
-                if(data.length - i < Settings.PACKAGE_SIZE) {
+                if (data.length - i < Settings.PACKAGE_SIZE) {
                     dataTemp = new byte[data.length - i];
                 } else dataTemp = new byte[Settings.PACKAGE_SIZE];
             }
@@ -40,7 +39,7 @@ public class FileActions {
         return list;
     }
 
-    private static byte[] convertToByteArray (Path path) {
+    private static byte[] convertToByteArray(Path path) {
         byte[] data = new byte[0];
         try {
             data = Files.readAllBytes(path);
@@ -52,7 +51,7 @@ public class FileActions {
 
     public static byte[] fileRestoredPackets(List<PackageFile> list) {
         byte[] newData = new byte[0];
-        int  currentLength;
+        int currentLength;
         for (PackageFile packageFile : list) {
             currentLength = newData.length;
             newData = Arrays.copyOf(newData, newData.length + packageFile.getDataPackage().length);
@@ -62,7 +61,7 @@ public class FileActions {
     }
 
     public static void fileDeletion(String catalog, String fileName) {
-        Path path = Paths.get(catalog  + File.separator + fileName);
+        Path path = Paths.get(catalog + File.separator + fileName);
         try {
             Files.delete(path);
         } catch (IOException e) {
@@ -72,7 +71,7 @@ public class FileActions {
     }
 
     public static void createDirectory(String path) {
-        if(Files.notExists(Paths.get("." + File.separator + path))) {
+        if (Files.notExists(Paths.get("." + File.separator + path))) {
             try {
                 Files.createDirectory(Paths.get("." + File.separator + path));
             } catch (IOException e) {

@@ -17,11 +17,11 @@ public class PackageFile extends AbstractMessage {
         return lastPackage;
     }
 
-    byte[] getDataPackage() {
+    public byte[] getDataPackage() {
         return dataPackage;
     }
 
-    PackageFile(Path path, boolean lastPackage, byte[] dataPackage) {
+   public PackageFile(Path path, boolean lastPackage, byte[] dataPackage) {
         this.fileName = path.getFileName().toString();
         this.lastPackage = lastPackage;
         this.dataPackage = dataPackage;

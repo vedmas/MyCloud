@@ -10,6 +10,9 @@ import ru.mycloud.Settings;
 import ru.mycloud.message.CommandMessage;
 import ru.mycloud.message.FileListMassage;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -57,11 +60,19 @@ public class InHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void ProcessingOnObjectPackageFile(ChannelHandlerContext ctx, PackageFile msg) throws IOException {
-        list.add(msg);
+//        list.add(msg);
+        try(FileOutputStream fos = new FileOutputStream(Settings.CLIENT_DIRECTORY + msg.getFileName(), true);
+            BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+            bos.write(msg.getDataPackage(), 0, msg.getDataPackage().length);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            log.info(e.getMessage());
+        }
         if (msg.isLastPackage()) {
             log.info("The received file from the client");
-            Files.write(Paths.get(Settings.CLIENT_DIRECTORY + msg.getFileName()),
-                    FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
+//            Files.write(Paths.get(Settings.CLIENT_DIRECTORY + msg.getFileName()),
+//                    FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
             CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
             ctx.writeAndFlush(order);
             controller.refreshLocalFilesList();

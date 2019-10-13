@@ -8,7 +8,9 @@ import ru.mycloud.message.AuthMessage;
 import ru.mycloud.message.CommandMessage;
 import ru.mycloud.message.FileListMassage;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -25,24 +27,22 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
-            //Если вдруг сообщение от клиента пустое, то ничего не делаем
             if (msg == null) {
                 log.error("Msg is empty");
             } else if (msg instanceof PackageFile) {
                 ProcessingOnObjectPackageFile(ctx, (PackageFile) msg);
-            } else if(msg instanceof CommandMessage) {
+            } else if (msg instanceof CommandMessage) {
                 ProcessingOnObjectCommandMessage(ctx, (CommandMessage) msg);
-            } else if(msg instanceof AuthMessage) {
+            } else if (msg instanceof AuthMessage) {
                 ProcessingOnObjectAuthMessage(ctx, (AuthMessage) msg);
             }
-        }
-        finally{
+        } finally {
             ReferenceCountUtil.release(msg);
         }
     }
 
     private void ProcessingOnObjectAuthMessage(ChannelHandlerContext ctx, AuthMessage msg) {
-        if(authService.isAuthorization(msg)) {
+        if (authService.isAuthorization(msg)) {
             CommandMessage om = new CommandMessage(Settings.AUTHORIZATION_PASSED, null);
             ctx.writeAndFlush(om);
             log.info("Authorization passed");
@@ -54,16 +54,16 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void ProcessingOnObjectCommandMessage(ChannelHandlerContext ctx, CommandMessage msg) {
-        if(msg.getNumberOrder() == Settings.RECEIVED_FILE) {
-            for (PackageFile packageFile : FileActions.createListPackage(Paths.get(Settings.SERVER_DIRECTORY  + File.separator + msg.getFileName()))) {
+        if (msg.getNumberOrder() == Settings.RECEIVED_FILE) {
+            for (PackageFile packageFile : FileActions.createListPackage(Paths.get(Settings.SERVER_DIRECTORY + File.separator + msg.getFileName()))) {
                 ctx.writeAndFlush(packageFile);
             }
             //Sending a list of files on the server to the client
-        } else if(msg.getNumberOrder() == Settings.FILE_LIST_ORDER) {
+        } else if (msg.getNumberOrder() == Settings.FILE_LIST_ORDER) {
             FileListMassage flm = new FileListMassage(refreshLocalFilesList());
             ctx.write(flm);
             //Delete a file in the cloud on customer request
-        } else if(msg.getNumberOrder() == Settings.ORDER_REMOVE_FILE) {
+        } else if (msg.getNumberOrder() == Settings.ORDER_REMOVE_FILE) {
             FileActions.fileDeletion(Settings.SERVER_DIRECTORY, msg.getFileName());
             log.info("Файл " + msg.getFileName() + " удален");
             CommandMessage om = new CommandMessage(Settings.RESPONSE_ORDER_REMOVE_FILE, null);
@@ -72,13 +72,21 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void ProcessingOnObjectPackageFile(ChannelHandlerContext ctx, PackageFile msg) throws IOException {
-        list.add(msg);
-        System.out.println("pf.isLastPackage() = " + msg.isLastPackage());
-        if(msg.isLastPackage()) {
+//        list.add(msg);
+        try(FileOutputStream fos = new FileOutputStream(Settings.SERVER_DIRECTORY + File.separator + msg.getFileName(), true);
+        BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+            bos.write(msg.getDataPackage(), 0, msg.getDataPackage().length);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            log.info(e.getMessage());
+        }
+        if (msg.isLastPackage()) {
             log.info("Получен файл от клиента");
-            Files.write(Paths.get(  Settings.SERVER_DIRECTORY + File.separator + msg.getFileName()),
-                    FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
-            list.clear();
+
+//            Files.write(Paths.get(Settings.SERVER_DIRECTORY + File.separator + msg.getFileName()),
+//                    FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
+//            list.clear();
             CommandMessage om = new CommandMessage(Settings.RESPONSE_SEND_FILE, null);
             ctx.writeAndFlush(om);
         }
@@ -89,12 +97,12 @@ public class ServerInHandler extends ChannelInboundHandlerAdapter {
         List<String> filesList = new ArrayList<>();
         try {
             Files.list(Paths.get(Settings.SERVER_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(filesList::add);
-            } catch (IOException e) {
-                log.info("Method refreshLocalFilesList error: " + e.getMessage());
-                e.printStackTrace();
-            }
-            return filesList;
+        } catch (IOException e) {
+            log.info("Method refreshLocalFilesList error: " + e.getMessage());
+            e.printStackTrace();
         }
+        return filesList;
+    }
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {

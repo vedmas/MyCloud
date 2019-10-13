@@ -11,6 +11,7 @@ import io.netty.handler.codec.serialization.ObjectEncoder;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import org.apache.log4j.Logger;
 import ru.mycloud.Settings;
+
 import java.net.InetSocketAddress;
 
 public class Network {
@@ -43,7 +44,6 @@ public class Network {
                     socketChannel.pipeline().addLast(
                             new ObjectDecoder(Settings.OBJECT_SIZE_FOR_DECODER, ClassResolvers.cacheDisabled(null)),
                             new ObjectEncoder(),
-                            new ChunkedWriteHandler(),
                             new InHandler(controller)
                     );
                     currentChannel = socketChannel;

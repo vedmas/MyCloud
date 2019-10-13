@@ -14,6 +14,8 @@ import ru.mycloud.Settings;
 import ru.mycloud.message.AuthMessage;
 import ru.mycloud.message.CommandMessage;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -67,7 +69,7 @@ public class Controller implements Initializable {
 
     //Updating the file list.
     private void starterRefreshFilesLists() {
-        if(Network.getInstance().isConnectionOpened()) {
+        if (Network.getInstance().isConnectionOpened()) {
             log.info("Client started!");
             refreshLocalFilesList();
             sendRefreshListFilesToServer();
@@ -97,17 +99,16 @@ public class Controller implements Initializable {
             //Hide the context menu
             hideContextMenus(clientContextMenu, serverContextMenu);
             if (event.getButton().equals(MouseButton.SECONDARY) && fs != null) {
-                for (MenuItem mi:serverContextMenu.getItems()) {
+                for (MenuItem mi : serverContextMenu.getItems()) {
                     if (!mi.isVisible())
                         mi.setVisible(true);
                 }
                 serverContextMenu.show(filesListServer, event.getScreenX(), event.getScreenY());
-            }
-            else if(event.getButton().equals(MouseButton.SECONDARY)) {
+            } else if (event.getButton().equals(MouseButton.SECONDARY)) {
 
-                for (MenuItem mi:serverContextMenu.getItems()) {
+                for (MenuItem mi : serverContextMenu.getItems()) {
                     if (mi.isVisible() && (mi.getUserData() == null))
-                    mi.setVisible(false);
+                        mi.setVisible(false);
                 }
                 serverContextMenu.show(filesListServer, event.getScreenX(), event.getScreenY());
             }
@@ -121,14 +122,14 @@ public class Controller implements Initializable {
             hideContextMenus(clientContextMenu, serverContextMenu);
 
             if (event.getButton().equals(MouseButton.SECONDARY) && fs != null) {
-                for (MenuItem mi:clientContextMenu.getItems()) {
+                for (MenuItem mi : clientContextMenu.getItems()) {
                     if (!mi.isVisible())
                         mi.setVisible(true);
                 }
                 clientContextMenu.show(filesList, event.getScreenX(), event.getScreenY());
 
-            } else if(event.getButton().equals(MouseButton.SECONDARY)) {
-                for (MenuItem mi:clientContextMenu.getItems()) {
+            } else if (event.getButton().equals(MouseButton.SECONDARY)) {
+                for (MenuItem mi : clientContextMenu.getItems()) {
                     if (mi.isVisible() && (mi.getUserData() == null))
                         mi.setVisible(false);
                 }
@@ -179,22 +180,22 @@ public class Controller implements Initializable {
 
         MenuItem deleteInTheClient = new MenuItem("Delete");
         deleteInTheClient.setOnAction(event -> {
-            FileActions.fileDeletion(Settings.CLIENT_DIRECTORY ,filesList.getSelectionModel().getSelectedItem());
+            FileActions.fileDeletion(Settings.CLIENT_DIRECTORY, filesList.getSelectionModel().getSelectedItem());
             refreshLocalFilesList();
         });
         clientContextMenu.getItems().add(deleteInTheClient);
         return clientContextMenu;
     }
 
-    private void hideContextMenus(ContextMenu ... contextMenus) {
-        for (ContextMenu cm:contextMenus) {
+    private void hideContextMenus(ContextMenu... contextMenus) {
+        for (ContextMenu cm : contextMenus) {
             if (cm.isShowing())
                 cm.hide();
         }
     }
 
     public void pressBtnToAuth(ActionEvent actionEvent) {
-        if(!authLoginTF.getText().isEmpty() && !authPasswordPF.getText().isEmpty()) {
+        if (!authLoginTF.getText().isEmpty() && !authPasswordPF.getText().isEmpty()) {
             AuthMessage authMessage = new AuthMessage(authLoginTF.getText(), authPasswordPF.getText());
             Network.getInstance().getCurrentChannel().writeAndFlush(authMessage);
         }
@@ -209,7 +210,7 @@ public class Controller implements Initializable {
     }
 
     public boolean pressOnSearchFileServer(ActionEvent actionEvent) {
-        if(tfFileNameServer.getLength() > 0 && filePresence(tfFileNameServer.getText(), filesListServer)) {
+        if (tfFileNameServer.getLength() > 0 && filePresence(tfFileNameServer.getText(), filesListServer)) {
             sortList(tfFileNameServer.getText(), filesListServer);
             tfFileNameServer.clear();
             return true;
@@ -224,8 +225,47 @@ public class Controller implements Initializable {
     }
 
     private void sendingPacketsFile(String fileName) {
-        for (PackageFile packageFile : FileActions.createListPackage(Paths.get(Settings.CLIENT_DIRECTORY + fileName))) {
-            Network.getInstance().getCurrentChannel().writeAndFlush(packageFile);
+//        for (PackageFile packageFile : FileActions.createListPackage(Paths.get(Settings.CLIENT_DIRECTORY + fileName))) {
+//            Network.getInstance().getCurrentChannel().writeAndFlush(packageFile);
+//        }
+        String path = Settings.CLIENT_DIRECTORY + fileName;
+        try {
+            byte[] data = Files.readAllBytes(Paths.get(path));
+            byte[] dataTemp = new byte[5 * 1024 * 1024];
+            int n = 0;
+            boolean lastPackage = false;
+            for (int i = 0; i < data.length; i++) {
+                dataTemp[n] = data[i];
+                n++;
+                if (n == dataTemp.length) {
+                    Network.getInstance().getCurrentChannel().writeAndFlush(new PackageFile(Paths.get(path), lastPackage, dataTemp));
+                    n = 0;
+                }
+                if (i == data.length -1) {
+//                    System.out.println("i= " + i + " n= " + n);
+//                    System.out.println("data.length = " + data.length);
+                    lastPackage = true;
+                    Network.getInstance().getCurrentChannel().writeAndFlush(new PackageFile(Paths.get(path), lastPackage, dataTemp));
+                    System.out.println("Package sending: " + lastPackage);
+                }
+//                System.out.println("Package sending: " + lastPackage);
+            }
+
+//            ByteArrayInputStream in = new ByteArrayInputStream(data);
+//            try(BufferedInputStream bis = new BufferedInputStream(in)) {
+//                byte[] dataTemp = new byte[5 * 1024 * 1024];
+//                int n = 0;
+//                int c;
+//                while ((c = bis.read()) != -1) {
+//                    dataTemp[n] = (byte) c;
+//                    n++;
+//                    if(n == dataTemp.length -1) {
+//                        new PackageFile(Paths.get(Settings.CLIENT_DIRECTORY + fileName), false, dataTemp);
+//                    }
+//                }
+//            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -234,9 +274,9 @@ public class Controller implements Initializable {
         Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
-    private boolean filePresence (String fileName, ListView list) {
+    private boolean filePresence(String fileName, ListView list) {
         for (Object value : list.getItems()) {
-            if(value.equals(fileName)) {
+            if (value.equals(fileName)) {
                 return true;
             }
         }
@@ -245,12 +285,12 @@ public class Controller implements Initializable {
 
     private void sortList(String fileName, ListView<String> list) {
         list.getItems().remove(fileName);
-        list.getItems().add(0,fileName);
+        list.getItems().add(0, fileName);
     }
 
     private void sendRefreshListFilesToServer() {
-            CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
-            Network.getInstance().getCurrentChannel().writeAndFlush(order);
+        CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
+        Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
     void refreshLocalFilesList() {
@@ -275,8 +315,8 @@ public class Controller implements Initializable {
 
     void refreshCloudFileList(List<String> list) {
         if (Platform.isFxApplicationThread()) {
-                filesListServer.getItems().clear();
-                filesListServer.getItems().addAll(list);
+            filesListServer.getItems().clear();
+            filesListServer.getItems().addAll(list);
         } else {
             Platform.runLater(() -> {
                 filesListServer.getItems().clear();
