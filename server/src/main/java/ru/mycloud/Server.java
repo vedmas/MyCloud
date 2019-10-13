@@ -31,7 +31,6 @@ public class Server {
                             socketChannel.pipeline().addLast(
                                     new ObjectDecoder(Settings.OBJECT_SIZE_FOR_DECODER, ClassResolvers.cacheDisabled(null)),
                                     new ObjectEncoder(),
-                                    new ChunkedWriteHandler(),
                                     new ServerInHandler()
                             );
                         }
@@ -39,8 +38,7 @@ public class Server {
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture future = b.bind(Settings.PORT).sync();
             future.channel().closeFuture().sync();
-        }
-        finally {
+        } finally {
             mainGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
