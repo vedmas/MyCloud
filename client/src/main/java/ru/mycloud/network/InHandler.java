@@ -4,33 +4,25 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.log4j.Logger;
-import ru.mycloud.FileActions;
 import ru.mycloud.PackageFile;
 import ru.mycloud.Settings;
 import ru.mycloud.message.CommandMessage;
 import ru.mycloud.message.FileListMassage;
 
 import java.io.BufferedOutputStream;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.List;
 
 public class InHandler extends ChannelInboundHandlerAdapter {
     private static final Logger log = Logger.getLogger(InHandler.class);
     private Controller controller;
-    private List<PackageFile> list = new ArrayList<>();
 
     InHandler(Controller controller) {
         this.controller = controller;
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         try {
             if(msg instanceof FileListMassage) {
                 ProcessingOnObjectFileListMessage((FileListMassage) msg);
@@ -59,20 +51,16 @@ public class InHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
-    private void ProcessingOnObjectPackageFile(ChannelHandlerContext ctx, PackageFile msg) throws IOException {
-//        list.add(msg);
+    private void ProcessingOnObjectPackageFile(ChannelHandlerContext ctx, PackageFile msg) {
         try(FileOutputStream fos = new FileOutputStream(Settings.CLIENT_DIRECTORY + msg.getFileName(), true);
             BufferedOutputStream bos = new BufferedOutputStream(fos)) {
             bos.write(msg.getDataPackage(), 0, msg.getDataPackage().length);
-
         } catch (IOException e) {
             e.printStackTrace();
             log.info(e.getMessage());
         }
         if (msg.isLastPackage()) {
             log.info("The received file from the client");
-//            Files.write(Paths.get(Settings.CLIENT_DIRECTORY + msg.getFileName()),
-//                    FileActions.fileRestoredPackets(list), StandardOpenOption.CREATE);
             CommandMessage order = new CommandMessage(Settings.FILE_LIST_ORDER, null);
             ctx.writeAndFlush(order);
             controller.refreshLocalFilesList();
@@ -85,7 +73,7 @@ public class InHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         cause.printStackTrace();
         ctx.close();
     }

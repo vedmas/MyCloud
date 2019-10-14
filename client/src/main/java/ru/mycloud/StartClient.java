@@ -5,10 +5,9 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import org.apache.log4j.Logger;
+import ru.mycloud.network.Network;
 
 public class StartClient extends Application {
-    private static final Logger log = Logger.getLogger(StartClient.class);
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -18,7 +17,11 @@ public class StartClient extends Application {
         Scene scene = new Scene(root);
         primaryStage.setScene(scene);
         primaryStage.show();
+
+        primaryStage.setOnCloseRequest(event -> new Network().closeConnection());
+
     }
+
 
     public static void main(String[] args) {
         launch(args);

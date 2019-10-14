@@ -8,7 +8,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
-import io.netty.handler.stream.ChunkedWriteHandler;
 import org.apache.log4j.Logger;
 import ru.mycloud.Settings;
 
@@ -17,13 +16,13 @@ import java.net.InetSocketAddress;
 public class Network {
     private static final Logger log = Logger.getLogger(Network.class);
     private static Network ourInstance = new Network();
-    private Settings settings = new Settings();
+    private static EventLoopGroup group;
 
     static Network getInstance() {
         return ourInstance;
     }
 
-    private Network() {
+    public Network() {
     }
 
     private Channel currentChannel;
@@ -33,14 +32,14 @@ public class Network {
     }
 
     void start(Controller controller) {
-        EventLoopGroup group = new NioEventLoopGroup();
+        group = new NioEventLoopGroup();
         try {
             Bootstrap clientBootstrap = new Bootstrap();
             clientBootstrap.group(group);
             clientBootstrap.channel(NioSocketChannel.class);
             clientBootstrap.remoteAddress(new InetSocketAddress(Settings.HOST, Settings.PORT));
             clientBootstrap.handler(new ChannelInitializer<SocketChannel>() {
-                protected void initChannel(SocketChannel socketChannel) throws Exception {
+                protected void initChannel(SocketChannel socketChannel) {
                     socketChannel.pipeline().addLast(
                             new ObjectDecoder(Settings.OBJECT_SIZE_FOR_DECODER, ClassResolvers.cacheDisabled(null)),
                             new ObjectEncoder(),
@@ -70,7 +69,12 @@ public class Network {
     }
 
     public void closeConnection() {
-        currentChannel.close();
+        if (isConnectionOpened()) {
+            currentChannel.close();
+        }
+        if (group != null) {
+            group.shutdownGracefully();
+        }
         System.exit(0);
     }
 

@@ -1,12 +1,8 @@
 package ru.mycloud;
 
-import org.apache.log4j.Logger;
-
 import java.io.File;
 
 public class Settings {
-    private static final Logger log = Logger.getLogger(Settings.class);
-
     public static final int RECEIVED_FILE = 8007;
     public static final int FILE_LIST_ORDER = 8008;
     public static final int ORDER_REMOVE_FILE = 8009;

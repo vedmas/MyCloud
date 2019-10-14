@@ -1,7 +1,6 @@
 package ru.mycloud.network;
 
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
@@ -14,8 +13,6 @@ import ru.mycloud.Settings;
 import ru.mycloud.message.AuthMessage;
 import ru.mycloud.message.CommandMessage;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -57,12 +54,7 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         FileActions.createDirectory(Settings.CLIENT_DIRECTORY);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Network.getInstance().start(Controller.this);
-            }
-        }).start();
+        new Thread(() -> Network.getInstance().start(Controller.this)).start();
         starterRefreshFilesLists();
         setUIListeners();
     }
@@ -174,7 +166,7 @@ public class Controller implements Initializable {
 
         MenuItem uploadToCloud = new MenuItem("Upload to Cloud");
         uploadToCloud.setOnAction(event -> {
-            sendingPacketsFile(filesList.getSelectionModel().getSelectedItem());
+            sendingPackagesFile(filesList.getSelectionModel().getSelectedItem());
         });
         clientContextMenu.getItems().add(uploadToCloud);
 
@@ -194,14 +186,14 @@ public class Controller implements Initializable {
         }
     }
 
-    public void pressBtnToAuth(ActionEvent actionEvent) {
+    public void pressBtnToAuth() {
         if (!authLoginTF.getText().isEmpty() && !authPasswordPF.getText().isEmpty()) {
             AuthMessage authMessage = new AuthMessage(authLoginTF.getText(), authPasswordPF.getText());
             Network.getInstance().getCurrentChannel().writeAndFlush(authMessage);
         }
     }
 
-    public void pressOnSearchFileClient(ActionEvent actionEvent) {
+    public void pressOnSearchFileClient() {
         if (tfFileName.getLength() > 0 && filePresence(tfFileName.getText(), filesList)) {
             sortList(tfFileName.getText(), filesList);
             tfFileName.clear();
@@ -209,7 +201,7 @@ public class Controller implements Initializable {
         tfFileName.clear();
     }
 
-    public boolean pressOnSearchFileServer(ActionEvent actionEvent) {
+    public boolean pressOnSearchFileServer() {
         if (tfFileNameServer.getLength() > 0 && filePresence(tfFileNameServer.getText(), filesListServer)) {
             sortList(tfFileNameServer.getText(), filesListServer);
             tfFileNameServer.clear();
@@ -224,46 +216,29 @@ public class Controller implements Initializable {
         Network.getInstance().getCurrentChannel().writeAndFlush(order);
     }
 
-    private void sendingPacketsFile(String fileName) {
-//        for (PackageFile packageFile : FileActions.createListPackage(Paths.get(Settings.CLIENT_DIRECTORY + fileName))) {
-//            Network.getInstance().getCurrentChannel().writeAndFlush(packageFile);
-//        }
+    private void sendingPackagesFile(String fileName) {
         String path = Settings.CLIENT_DIRECTORY + fileName;
+        int marker = 0;
         try {
             byte[] data = Files.readAllBytes(Paths.get(path));
-            byte[] dataTemp = new byte[5 * 1024 * 1024];
-            int n = 0;
-            boolean lastPackage = false;
-            for (int i = 0; i < data.length; i++) {
-                dataTemp[n] = data[i];
-                n++;
-                if (n == dataTemp.length) {
-                    Network.getInstance().getCurrentChannel().writeAndFlush(new PackageFile(Paths.get(path), lastPackage, dataTemp));
-                    n = 0;
-                }
-                if (i == data.length -1) {
-//                    System.out.println("i= " + i + " n= " + n);
-//                    System.out.println("data.length = " + data.length);
-                    lastPackage = true;
-                    Network.getInstance().getCurrentChannel().writeAndFlush(new PackageFile(Paths.get(path), lastPackage, dataTemp));
-                    System.out.println("Package sending: " + lastPackage);
-                }
-//                System.out.println("Package sending: " + lastPackage);
+            byte[] dataTemp = new byte[Settings.PACKAGE_SIZE];
+            if (data.length < Settings.PACKAGE_SIZE) {
+                dataTemp = new byte[data.length];
             }
-
-//            ByteArrayInputStream in = new ByteArrayInputStream(data);
-//            try(BufferedInputStream bis = new BufferedInputStream(in)) {
-//                byte[] dataTemp = new byte[5 * 1024 * 1024];
-//                int n = 0;
-//                int c;
-//                while ((c = bis.read()) != -1) {
-//                    dataTemp[n] = (byte) c;
-//                    n++;
-//                    if(n == dataTemp.length -1) {
-//                        new PackageFile(Paths.get(Settings.CLIENT_DIRECTORY + fileName), false, dataTemp);
-//                    }
-//                }
-//            }
+            for (int i = 0; i < data.length; i++) {
+                dataTemp[marker] = data[i];
+                marker++;
+                if (marker == dataTemp.length) {
+                    Network.getInstance().getCurrentChannel().writeAndFlush(new PackageFile(Paths.get(path), false, dataTemp));
+                    marker = 0;
+                    if (data.length - i < Settings.PACKAGE_SIZE) {
+                        dataTemp = new byte[data.length - i];
+                    } else {
+                        dataTemp = new byte[Settings.PACKAGE_SIZE];
+                    }
+                }
+            }
+            Network.getInstance().getCurrentChannel().writeAndFlush(new PackageFile(Paths.get(path), true, dataTemp));
         } catch (IOException e) {
             e.printStackTrace();
         }
