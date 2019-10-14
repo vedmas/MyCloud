@@ -17,11 +17,8 @@ public class StartClient extends Application {
         Scene scene = new Scene(root);
         primaryStage.setScene(scene);
         primaryStage.show();
-
         primaryStage.setOnCloseRequest(event -> new Network().closeConnection());
-
     }
-
 
     public static void main(String[] args) {
         launch(args);

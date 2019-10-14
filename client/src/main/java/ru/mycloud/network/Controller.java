@@ -38,6 +38,12 @@ public class Controller implements Initializable {
     @FXML
     Label authMsg;
 
+    private String currentUser;
+
+    String getCurrentUser() {
+        return currentUser;
+    }
+
     void setAuthorized() {
         upperPanel.setVisible(false);
         upperPanel.setManaged(false);
@@ -53,14 +59,11 @@ public class Controller implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        FileActions.createDirectory(Settings.CLIENT_DIRECTORY);
         new Thread(() -> Network.getInstance().start(Controller.this)).start();
-        starterRefreshFilesLists();
-        setUIListeners();
     }
 
     //Updating the file list.
-    private void starterRefreshFilesLists() {
+    void starterRefreshFilesLists() {
         if (Network.getInstance().isConnectionOpened()) {
             log.info("Client started!");
             refreshLocalFilesList();
@@ -77,12 +80,11 @@ public class Controller implements Initializable {
     }
 
     //Context menu options
-    private void setUIListeners() {
+    void setUIListeners() {
         ContextMenu clientContextMenu = clientContextMenu();
         ContextMenu serverContextMenu = cloudContextMenu();
         clickOnTheFile(clientContextMenu, serverContextMenu);
         handlingClicksInTheCloud(clientContextMenu, serverContextMenu);
-
     }
 
     private void handlingClicksInTheCloud(ContextMenu clientContextMenu, ContextMenu serverContextMenu) {
@@ -112,14 +114,12 @@ public class Controller implements Initializable {
             String fs = filesList.getSelectionModel().getSelectedItem();
             //Hide the context menu
             hideContextMenus(clientContextMenu, serverContextMenu);
-
             if (event.getButton().equals(MouseButton.SECONDARY) && fs != null) {
                 for (MenuItem mi : clientContextMenu.getItems()) {
                     if (!mi.isVisible())
                         mi.setVisible(true);
                 }
                 clientContextMenu.show(filesList, event.getScreenX(), event.getScreenY());
-
             } else if (event.getButton().equals(MouseButton.SECONDARY)) {
                 for (MenuItem mi : clientContextMenu.getItems()) {
                     if (mi.isVisible() && (mi.getUserData() == null))
@@ -172,7 +172,7 @@ public class Controller implements Initializable {
 
         MenuItem deleteInTheClient = new MenuItem("Delete");
         deleteInTheClient.setOnAction(event -> {
-            FileActions.fileDeletion(Settings.CLIENT_DIRECTORY, filesList.getSelectionModel().getSelectedItem());
+            FileActions.fileDeletion(Settings.clientDirectory, filesList.getSelectionModel().getSelectedItem());
             refreshLocalFilesList();
         });
         clientContextMenu.getItems().add(deleteInTheClient);
@@ -191,6 +191,7 @@ public class Controller implements Initializable {
             AuthMessage authMessage = new AuthMessage(authLoginTF.getText(), authPasswordPF.getText());
             Network.getInstance().getCurrentChannel().writeAndFlush(authMessage);
         }
+        currentUser = authLoginTF.getText();
     }
 
     public void pressOnSearchFileClient() {
@@ -217,7 +218,7 @@ public class Controller implements Initializable {
     }
 
     private void sendingPackagesFile(String fileName) {
-        String path = Settings.CLIENT_DIRECTORY + fileName;
+        String path = Settings.clientDirectory + fileName;
         int marker = 0;
         try {
             byte[] data = Files.readAllBytes(Paths.get(path));
@@ -272,7 +273,7 @@ public class Controller implements Initializable {
         if (Platform.isFxApplicationThread()) {
             try {
                 filesList.getItems().clear();
-                Files.list(Paths.get(Settings.CLIENT_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(o -> filesList.getItems().add(o));
+                Files.list(Paths.get(Settings.clientDirectory)).map(p -> p.getFileName().toString()).forEach(o -> filesList.getItems().add(o));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -280,7 +281,7 @@ public class Controller implements Initializable {
             Platform.runLater(() -> {
                 try {
                     filesList.getItems().clear();
-                    Files.list(Paths.get(Settings.CLIENT_DIRECTORY)).map(p -> p.getFileName().toString()).forEach(o -> filesList.getItems().add(o));
+                    Files.list(Paths.get(Settings.clientDirectory)).map(p -> p.getFileName().toString()).forEach(o -> filesList.getItems().add(o));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

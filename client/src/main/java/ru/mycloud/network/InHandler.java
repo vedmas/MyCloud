@@ -4,14 +4,17 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
 import org.apache.log4j.Logger;
+import ru.mycloud.FileActions;
 import ru.mycloud.PackageFile;
 import ru.mycloud.Settings;
 import ru.mycloud.message.CommandMessage;
 import ru.mycloud.message.FileListMassage;
 
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+
 
 public class InHandler extends ChannelInboundHandlerAdapter {
     private static final Logger log = Logger.getLogger(InHandler.class);
@@ -44,6 +47,10 @@ public class InHandler extends ChannelInboundHandlerAdapter {
             ctx.writeAndFlush(order);
         }
         else if(msg.getNumberOrder() == Settings.AUTHORIZATION_PASSED) {
+            Settings.clientDirectory = controller.getCurrentUser() + File.separator + Settings.USER_DIRECTORY_CLIENT;
+            FileActions.createDirectory(Settings.clientDirectory);
+            controller.starterRefreshFilesLists();
+            controller.setUIListeners();
             controller.setAuthorized();
         }
         else if(msg.getNumberOrder() == Settings.AUTHORIZATION_FAILED) {
@@ -52,7 +59,7 @@ public class InHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void ProcessingOnObjectPackageFile(ChannelHandlerContext ctx, PackageFile msg) {
-        try(FileOutputStream fos = new FileOutputStream(Settings.CLIENT_DIRECTORY + msg.getFileName(), true);
+        try(FileOutputStream fos = new FileOutputStream(Settings.clientDirectory + msg.getFileName(), true);
             BufferedOutputStream bos = new BufferedOutputStream(fos)) {
             bos.write(msg.getDataPackage(), 0, msg.getDataPackage().length);
         } catch (IOException e) {

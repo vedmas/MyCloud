@@ -17,7 +17,6 @@ public class Server {
     private static final Logger log = Logger.getLogger(Server.class);
 
     private void run() throws Exception {
-        FileActions.createDirectory(Settings.SERVER_DIRECTORY);
         EventLoopGroup mainGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {

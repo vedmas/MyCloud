@@ -1,7 +1,6 @@
 package ru.mycloud;
 
 import ru.mycloud.message.AbstractMessage;
-
 import java.nio.file.Path;
 
 public class PackageFile extends AbstractMessage {

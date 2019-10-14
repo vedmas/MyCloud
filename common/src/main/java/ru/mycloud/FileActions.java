@@ -24,7 +24,7 @@ public class FileActions {
     public static void createDirectory(String path) {
         if (Files.notExists(Paths.get("." + File.separator + path))) {
             try {
-                Files.createDirectory(Paths.get("." + File.separator + path));
+                Files.createDirectories(Paths.get("." + File.separator + path));
             } catch (IOException e) {
                 e.printStackTrace();
                 log.error(e.getMessage());
