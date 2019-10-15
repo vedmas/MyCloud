@@ -9,7 +9,7 @@
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.Label?>
 <VBox fx:id="rootNode" alignment="CENTER" prefHeight="500.0" prefWidth="400.0" style="-fx-background-color: linear-gradient(#fff 0%, #eee 10%, #ddd 40%, #bbb 100%);"
-      xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.172-ea" fx:controller="ru.MyCloud.network.Controller">
+      xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.172-ea" fx:controller="ru.mycloud.network.Controller">
 
     <HBox fx:id="upperPanel" alignment="CENTER" spacing="5">
         <VBox alignment="CENTER_RIGHT" spacing="17">
@@ -22,7 +22,7 @@
             <TextField fx:id="authLoginTF" />
             <PasswordField fx:id="authPasswordPF" />
             <Button fx:id="pressBtnToAuth" text="Sign In" onAction="#pressBtnToAuth" />
-            <Label fx:id="authMsg" text="" />
+            <Label fx:id="authMsg" />
         </VBox>
     </HBox>
 

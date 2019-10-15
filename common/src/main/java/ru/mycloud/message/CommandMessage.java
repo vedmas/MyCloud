@@ -1,6 +1,6 @@
-package ru.MyCloud.message;
+package ru.mycloud.message;
 
-public class OrderMessage extends AbstractMessage {
+public class CommandMessage extends AbstractMessage {
     private int numberOrder;
     private String fileName;
 
@@ -12,7 +12,7 @@ public class OrderMessage extends AbstractMessage {
         return fileName;
     }
 
-    public OrderMessage(int numberOrder, String fileName) {
+    public CommandMessage(int numberOrder, String fileName) {
         this.numberOrder = numberOrder;
         this.fileName = fileName;
     }

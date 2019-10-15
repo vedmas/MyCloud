@@ -1,4 +1,4 @@
-package ru.MyCloud.message;
+package ru.mycloud.message;
 
 public class AuthMessage extends AbstractMessage {
     private String login;
